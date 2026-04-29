@@ -6,14 +6,19 @@ class ServiceSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     response_time_ms = serializers.SerializerMethodField()
     last_checked_at = serializers.SerializerMethodField()
+    recent_history = serializers.SerializerMethodField()
 
     class Meta:
         model = ServiceModel
-        fields = ['id', 'name', 'url', 'check_interval_seconds', 'is_active', 'created_at', 'status', 'response_time_ms', 'last_checked_at']
-        read_only_fields = ['id', 'created_at', 'status', 'response_time_ms', 'last_checked_at']
+        fields = ['id', 'name', 'url', 'check_interval_seconds', 'is_active', 'created_at', 'status', 'response_time_ms', 'last_checked_at', 'recent_history']
+        read_only_fields = ['id', 'created_at', 'status', 'response_time_ms', 'last_checked_at', 'recent_history']
 
     def _last_check(self, obj):
         return obj.checks.first()
+
+    def get_recent_history(self, obj):
+        checks = obj.checks.all()[:30]
+        return CheckResultSerializer(checks, many=True).data
 
     def get_status(self, obj):
         check = self._last_check(obj)
