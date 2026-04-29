@@ -20,64 +20,46 @@
 
 ---
 
-## Architecture — Clean Architecture
+## Architecture — Monorepo Structure
 
 ```
 sentinel/
-├── domain/
-│   ├── entities/        # Service, CheckResult, Alert — pure Python
-│   └── interfaces/      # IServiceRepository, IAlertNotifier
-├── application/
-│   ├── use_cases/       # ping_service.py, create_service.py, send_alert.py
-│   └── services/        # alert_service.py, health_service.py
-├── infrastructure/
-│   ├── repositories/    # Django ORM implementations
-│   ├── external/        # HTTP ping client, email/slack notifiers
-│   └── tasks/           # Celery tasks (thin wrappers over use cases)
-├── interfaces/
-│   ├── http/
-│   │   ├── views/       # DRF ViewSets (no logic)
-│   │   └── serializers/ # Request/response DTOs
-│   └── workers/         # Celery Beat schedule config
-├── config/
-│   ├── settings/
-│   │   ├── base.py
-│   │   ├── local.py
-│   │   └── production.py
-│   ├── urls.py
-│   └── celery.py
-├── tests/
-│   ├── unit/
-│   └── integration/
-├── docker-compose.yml
-└── nginx/
+├── backend/             # Django & Celery logic
+│   ├── domain/          # Entities & repository interfaces
+│   ├── application/     # Use cases
+│   ├── infrastructure/  # DB, External APIs, Celery tasks
+│   ├── interfaces/      # HTTP APIs (DRF)
+│   ├── config/          # Settings & Celery config
+│   ├── tests/           # Unit & integration tests
+│   ├── Dockerfile
+│   └── manage.py
+├── frontend/            # React + Vite application
+├── docker-compose.yml   # Global orchestration
+└── nginx/               # Reverse proxy
 ```
 
 ---
 
 ## Key Commands
 
+### Backend
 ```bash
-# Dev server
+cd backend
 python manage.py runserver
-
-# Celery worker
 celery -A config worker -l info
-
-# Celery Beat
 celery -A config beat -l info
-
-# Migrations
-python manage.py makemigrations
 python manage.py migrate
-
-# Tests
 pytest
+```
 
-# Lint
-ruff check .
+### Frontend
+```bash
+cd frontend
+npm run dev
+```
 
-# Docker
+### Docker (Global)
+```bash
 docker compose up --build
 docker compose down
 ```
