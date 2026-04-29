@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(scaffold)",
+      "Bash(cp .env.example .env)",
+      "Bash(python -c \"import secrets; key=secrets.token_urlsafe\\(50\\); content=open\\('.env'\\).read\\(\\).replace\\('your-secret-key-here', key\\); open\\('.env','w'\\).write\\(content\\)\")",
+      "Bash(python3 -c \"import secrets; key=secrets.token_urlsafe\\(50\\); content=open\\('.env'\\).read\\(\\).replace\\('your-secret-key-here', key\\); open\\('.env','w'\\).write\\(content\\)\")",
+      "Bash(python3.12 -c \"import secrets; key=secrets.token_urlsafe\\(50\\); content=open\\('.env'\\).read\\(\\).replace\\('your-secret-key-here', key\\); open\\('.env','w'\\).write\\(content\\)\")",
+      "Bash(docker --version)",
+      "Bash(docker compose *)",
+      "Bash(node -e \"const c=require\\('crypto'\\);const k=c.randomBytes\\(50\\).toString\\('hex'\\);const fs=require\\('fs'\\);let e=fs.readFileSync\\('.env','utf8'\\);e=e.replace\\('your-secret-key-here',k\\);fs.writeFileSync\\('.env',e\\);console.log\\('SECRET_KEY set'\\)\")",
+      "Bash(mkdir -p ~/.claude/sessions)",
+      "Bash(mkdir -p C:/Universidad/Sentinel/.claude/sessions)",
+      "Bash(curl *)",
+      "Bash(python manage.py collectstatic --noinput)",
+      "Bash(pyenv versions *)",
+      "Bash(pyenv global *)",
+      "Bash(C:/Users/santiago.perez/.pyenv/pyenv-win/versions/3.11.2/python.exe manage.py collectstatic --noinput)",
+      "Bash(python *)",
+      "Bash(cmd *)",
+      "Bash(npm -v)",
+      "Bash(npm create *)",
+      "Bash(npm install *)",
+      "Read(//mnt/c/Universidad/Sentinel/frontend/**)",
+      "Bash(powershell.exe -Command \"Get-Content 'C:\\\\Universidad\\\\Sentinel\\\\frontend\\\\vite.config.js'\")",
+      "PowerShell(Move-Item *)",
+      "PowerShell(Get-ChildItem \"C:\\\\Universidad\\\\Sentinel\\\\frontend\\\\src\" -Recurse | Where-Object { -not $_.PSIsContainer } | ForEach-Object { $_.FullName })"
+    ]
+  }
+}

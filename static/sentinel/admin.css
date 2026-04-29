@@ -1,0 +1,96 @@
+:root {
+  --s-bg: #1a1d23;
+  --s-card: #242830;
+  --s-border: #353a47;
+  --s-text: #e2e8f0;
+  --s-muted: #8892a4;
+  --s-primary: #4a9eff;
+  --s-success: #28c76f;
+  --s-warning: #ff9f43;
+  --s-danger: #ea5455;
+  --s-info: #00cfe8;
+}
+
+body, .wrapper, .content-wrapper { background-color: var(--s-bg) !important; }
+
+.main-sidebar, .sidebar { background-color: #13161b !important; }
+.nav-sidebar .nav-link { color: var(--s-muted) !important; border-radius: 6px; margin: 1px 8px; }
+.nav-sidebar .nav-link:hover, .nav-sidebar .nav-link.active {
+  background: rgba(74,158,255,0.12) !important; color: var(--s-primary) !important;
+}
+.nav-sidebar .nav-link.active { font-weight: 600; }
+.brand-link { border-bottom: 1px solid var(--s-border) !important; }
+
+.main-header.navbar { background-color: #13161b !important; border-bottom: 1px solid var(--s-border) !important; }
+.main-header .nav-link { color: var(--s-muted) !important; }
+
+.card, .module { background-color: var(--s-card) !important; border: 1px solid var(--s-border) !important; border-radius: 10px !important; color: var(--s-text) !important; }
+.card-header { background-color: rgba(255,255,255,0.03) !important; border-bottom: 1px solid var(--s-border) !important; color: var(--s-muted) !important; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+.card-body { background-color: var(--s-card) !important; color: var(--s-text) !important; }
+
+.table, table { color: var(--s-text) !important; }
+.table thead th, #result_list thead th { background-color: rgba(255,255,255,0.03) !important; border-bottom: 1px solid var(--s-border) !important; color: var(--s-muted) !important; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.table td, #result_list td { border-color: var(--s-border) !important; color: var(--s-text) !important; }
+#result_list tr:hover td { background: rgba(255,255,255,0.025) !important; }
+
+.form-control, input[type=text], input[type=email], input[type=password],
+input[type=url], input[type=number], select, textarea {
+  background-color: #1e2229 !important; border: 1px solid var(--s-border) !important;
+  color: var(--s-text) !important; border-radius: 6px !important;
+}
+.form-control:focus, input:focus, select:focus, textarea:focus {
+  border-color: var(--s-primary) !important;
+  box-shadow: 0 0 0 3px rgba(74,158,255,0.15) !important;
+  outline: none;
+}
+label, .form-group label { color: var(--s-text) !important; font-weight: 500; }
+.help { color: var(--s-muted) !important; font-size: 0.8rem; }
+
+.breadcrumb { background: transparent !important; }
+.breadcrumb-item a { color: var(--s-primary) !important; }
+.breadcrumb-item.active, .breadcrumb-item + .breadcrumb-item::before { color: var(--s-muted) !important; }
+
+.btn-primary, input[type=submit].default { background-color: var(--s-primary) !important; border-color: var(--s-primary) !important; color: #fff !important; border-radius: 6px !important; }
+.btn-secondary { background-color: var(--s-card) !important; border-color: var(--s-border) !important; color: var(--s-text) !important; }
+.btn-danger  { background-color: var(--s-danger)  !important; border-color: var(--s-danger)  !important; color: #fff !important; }
+.btn-success { background-color: var(--s-success) !important; border-color: var(--s-success) !important; color: #fff !important; }
+.btn-warning { background-color: var(--s-warning) !important; border-color: var(--s-warning) !important; color: #fff !important; }
+
+.alert-success { background: rgba(40,199,111,0.12)  !important; border-color: rgba(40,199,111,0.3)  !important; color: var(--s-success) !important; }
+.alert-error, .alert-danger { background: rgba(234,84,85,0.12) !important; border-color: rgba(234,84,85,0.3) !important; color: var(--s-danger) !important; }
+.alert-warning { background: rgba(255,159,67,0.12)  !important; border-color: rgba(255,159,67,0.3)  !important; color: var(--s-warning) !important; }
+.alert-info    { background: rgba(0,207,232,0.12)   !important; border-color: rgba(0,207,232,0.3)   !important; color: var(--s-info)    !important; }
+
+a { color: var(--s-primary) !important; }
+a:hover { color: #6eb3ff !important; }
+h1, h2, h3, .content-header h1 { color: var(--s-text) !important; }
+
+.main-footer { background-color: #13161b !important; border-top: 1px solid var(--s-border) !important; color: var(--s-muted) !important; font-size: 0.78rem; }
+
+.selector-chosen, .selector-available { background: #1e2229 !important; border-color: var(--s-border) !important; }
+select[multiple] option { background: #1e2229 !important; color: var(--s-text) !important; }
+
+/* Django selector widget — dark mode */
+.selector { background: transparent !important; }
+.selector-available h2, .selector-chosen h2 {
+  background: var(--s-card) !important; color: var(--s-muted) !important;
+  border-bottom: 1px solid var(--s-border) !important; font-size: 0.72rem;
+  text-transform: uppercase; letter-spacing: 0.06em; padding: 6px 8px;
+}
+.selector-chosen h2 { background: var(--s-primary) !important; color: #fff !important; }
+.selector-filter { background: #1e2229 !important; border-bottom: 1px solid var(--s-border) !important; }
+.selector-filter input { background: #1e2229 !important; color: var(--s-text) !important; border: none !important; }
+.selector-filter label { color: var(--s-muted) !important; }
+.selector-chosen select, .selector-available select {
+  background: #1a1d23 !important; color: var(--s-text) !important; border: none !important;
+}
+.selector-chooser { background: var(--s-card) !important; border: 1px solid var(--s-border) !important; border-radius: 6px !important; }
+.selector-chooser li { background: transparent !important; }
+.selector-chooser .selector-add, .selector-chooser .selector-remove {
+  background-color: var(--s-primary) !important; border-radius: 4px !important; opacity: 0.85;
+}
+.selector-chooser .selector-add:hover, .selector-chooser .selector-remove:hover { opacity: 1; }
+
+.deletelink { color: var(--s-danger)  !important; }
+.addlink    { color: var(--s-success) !important; }
+.changelink { color: var(--s-primary) !important; }

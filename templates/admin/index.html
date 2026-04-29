@@ -1,0 +1,288 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+<style>
+  :root {
+    --s-bg: #1a1d23;
+    --s-card: #242830;
+    --s-card-hover: #2c3040;
+    --s-border: #353a47;
+    --s-text: #e2e8f0;
+    --s-muted: #8892a4;
+    --s-primary: #4a9eff;
+    --s-success: #28c76f;
+    --s-warning: #ff9f43;
+    --s-danger: #ea5455;
+    --s-info: #00cfe8;
+  }
+
+  .s-page { background: var(--s-bg); padding: 1.5rem; min-height: 100vh; color: var(--s-text); }
+
+  /* Hero */
+  .s-hero {
+    background: linear-gradient(135deg, #1e3a5f 0%, #0f2340 50%, #162032 100%);
+    border: 1px solid #2a4a7f;
+    border-radius: 12px;
+    padding: 2rem 2.5rem;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .s-hero::before {
+    content: '';
+    position: absolute; top: -40px; right: -40px;
+    width: 180px; height: 180px;
+    background: radial-gradient(circle, rgba(74,158,255,0.15) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .s-hero h1 { color: #ffffff; font-size: 1.9rem; font-weight: 700; margin-bottom: 0.4rem; }
+  .s-hero p { color: #a0b8d8; margin: 0; font-size: 1rem; }
+  .s-hero .s-tag {
+    display: inline-block; background: rgba(74,158,255,0.15);
+    color: var(--s-primary); border: 1px solid rgba(74,158,255,0.3);
+    border-radius: 20px; padding: 0.2rem 0.8rem; font-size: 0.75rem;
+    font-weight: 600; letter-spacing: 0.05em; margin-bottom: 0.8rem;
+  }
+
+  /* Section titles */
+  .s-section-title {
+    color: var(--s-muted); font-size: 0.7rem; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    margin-bottom: 1rem; margin-top: 0.5rem;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .s-section-title::after {
+    content: ''; flex: 1; height: 1px; background: var(--s-border);
+  }
+
+  /* Step cards */
+  .s-step-card {
+    background: var(--s-card);
+    border: 1px solid var(--s-border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    height: 100%;
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .s-step-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .s-step-card.c1 { border-top: 3px solid var(--s-primary); }
+  .s-step-card.c1:hover { border-color: var(--s-primary); }
+  .s-step-card.c2 { border-top: 3px solid var(--s-success); }
+  .s-step-card.c2:hover { border-color: var(--s-success); }
+  .s-step-card.c3 { border-top: 3px solid var(--s-warning); }
+  .s-step-card.c3:hover { border-color: var(--s-warning); }
+  .s-step-card.c4 { border-top: 3px solid var(--s-danger); }
+  .s-step-card.c4:hover { border-color: var(--s-danger); }
+
+  .s-step-num {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 700; margin-bottom: 1rem;
+  }
+  .s-step-card.c1 .s-step-num { background: rgba(74,158,255,0.15); color: var(--s-primary); }
+  .s-step-card.c2 .s-step-num { background: rgba(40,199,111,0.15); color: var(--s-success); }
+  .s-step-card.c3 .s-step-num { background: rgba(255,159,67,0.15); color: var(--s-warning); }
+  .s-step-card.c4 .s-step-num { background: rgba(234,84,85,0.15); color: var(--s-danger); }
+
+  .s-step-icon { font-size: 1.5rem; margin-bottom: 0.75rem; }
+  .s-step-card.c1 .s-step-icon { color: var(--s-primary); }
+  .s-step-card.c2 .s-step-icon { color: var(--s-success); }
+  .s-step-card.c3 .s-step-icon { color: var(--s-warning); }
+  .s-step-card.c4 .s-step-icon { color: var(--s-danger); }
+
+  .s-step-title { color: #ffffff; font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; }
+  .s-step-desc { color: var(--s-muted); font-size: 0.82rem; line-height: 1.6; margin-bottom: 1.2rem; }
+
+  .s-btn {
+    display: inline-block; padding: 0.4rem 1rem; border-radius: 6px;
+    font-size: 0.8rem; font-weight: 600; text-decoration: none !important;
+    border: none; cursor: pointer; transition: opacity 0.2s;
+  }
+  .s-btn:hover { opacity: 0.85; }
+  .s-btn-primary { background: var(--s-primary); color: #fff !important; }
+  .s-btn-warning { background: var(--s-warning); color: #fff !important; }
+  .s-badge {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.3rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+  }
+  .s-badge-success { background: rgba(40,199,111,0.15); color: var(--s-success); border: 1px solid rgba(40,199,111,0.3); }
+  .s-badge-muted { background: rgba(136,146,164,0.1); color: var(--s-muted); border: 1px solid var(--s-border); }
+
+  /* API table */
+  .s-table-card {
+    background: var(--s-card); border: 1px solid var(--s-border); border-radius: 12px; overflow: hidden; margin-bottom: 2rem;
+  }
+  .s-table-card .s-card-header {
+    padding: 1rem 1.5rem; border-bottom: 1px solid var(--s-border);
+    color: var(--s-muted); font-size: 0.8rem;
+  }
+  .s-table-card .s-card-header code {
+    background: rgba(74,158,255,0.1); color: var(--s-primary);
+    padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.78rem;
+  }
+  .s-api-table { width: 100%; border-collapse: collapse; }
+  .s-api-table th {
+    background: rgba(255,255,255,0.03); color: var(--s-muted);
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; padding: 0.75rem 1.5rem; border-bottom: 1px solid var(--s-border);
+    text-align: left;
+  }
+  .s-api-table td { padding: 0.75rem 1.5rem; border-bottom: 1px solid rgba(53,58,71,0.5); color: var(--s-text); font-size: 0.85rem; }
+  .s-api-table tr:last-child td { border-bottom: none; }
+  .s-api-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .s-api-table code { color: var(--s-info); font-size: 0.82rem; }
+  .s-method { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700; min-width: 44px; text-align: center; }
+  .m-get  { background: rgba(40,199,111,0.15); color: var(--s-success); }
+  .m-post { background: rgba(74,158,255,0.15); color: var(--s-primary); }
+
+  /* Infra cards */
+  .s-infra-card {
+    background: var(--s-card); border: 1px solid var(--s-border); border-radius: 10px;
+    padding: 1.2rem; display: flex; align-items: center; gap: 1rem;
+  }
+  .s-infra-icon {
+    width: 42px; height: 42px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;
+  }
+  .s-infra-name { color: #ffffff; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.15rem; }
+  .s-infra-desc { color: var(--s-muted); font-size: 0.75rem; }
+
+  /* Admin models */
+  .s-model-card { background: var(--s-card); border: 1px solid var(--s-border); border-radius: 10px; overflow: hidden; margin-bottom: 1rem; }
+  .s-model-header { padding: 0.75rem 1.25rem; background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--s-border); color: var(--s-muted); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+  .s-model-body { padding: 0.75rem 1.25rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .s-model-link { color: var(--s-text) !important; font-size: 0.85rem; text-decoration: none !important; }
+  .s-model-link:hover { color: var(--s-primary) !important; }
+  .s-add-link { background: rgba(74,158,255,0.1); color: var(--s-primary) !important; border: 1px solid rgba(74,158,255,0.25); padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.72rem; font-weight: 600; text-decoration: none !important; margin-left: 0.25rem; }
+  .s-add-link:hover { background: rgba(74,158,255,0.2) !important; }
+</style>
+
+<div class="s-page">
+
+  <!-- Hero -->
+  <div class="s-hero">
+    <div class="s-tag"><i class="fas fa-circle mr-1" style="font-size:0.5rem;color:var(--s-success)"></i> SISTEMA ACTIVO</div>
+    <h1><i class="fas fa-satellite-dish mr-2" style="color:var(--s-primary)"></i>Sentinel Monitor</h1>
+    <p>Sistema de monitoreo automático de servicios y APIs en tiempo real.</p>
+  </div>
+
+  <!-- Steps -->
+  <div class="s-section-title"><i class="fas fa-map-signs"></i> Cómo funciona</div>
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="s-step-card c1">
+        <div class="s-step-num">1</div>
+        <div class="s-step-icon"><i class="fas fa-server"></i></div>
+        <div class="s-step-title">Registrar servicio</div>
+        <div class="s-step-desc">Ve a <strong style="color:var(--s-text)">Infrastructure → Service models → Add</strong>. Ingresa nombre, URL y el intervalo de verificación en segundos.</div>
+        <a href="{% url 'admin:infrastructure_servicemodel_add' %}" class="s-btn s-btn-primary">
+          <i class="fas fa-plus mr-1"></i> Agregar servicio
+        </a>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="s-step-card c2">
+        <div class="s-step-num">2</div>
+        <div class="s-step-icon"><i class="fas fa-heartbeat"></i></div>
+        <div class="s-step-title">Ping automático</div>
+        <div class="s-step-desc">Celery Beat ejecuta pings automáticos según el <strong style="color:var(--s-text)">intervalo definido por servicio</strong>. El ciclo global corre cada 60 s. Ocurre en background sin intervención.</div>
+        <span class="s-badge s-badge-success"><i class="fas fa-circle" style="font-size:0.5rem"></i> Worker activo</span>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="s-step-card c3">
+        <div class="s-step-num">3</div>
+        <div class="s-step-icon"><i class="fas fa-clipboard-list"></i></div>
+        <div class="s-step-title">Ver resultados</div>
+        <div class="s-step-desc">En <strong style="color:var(--s-text)">Check result models</strong> verás cada ping registrado: estado UP/DOWN, tiempo de respuesta ms y código HTTP.</div>
+        <a href="{% url 'admin:infrastructure_checkresultmodel_changelist' %}" class="s-btn s-btn-warning">
+          <i class="fas fa-list mr-1"></i> Ver historial
+        </a>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="s-step-card c4">
+        <div class="s-step-num">4</div>
+        <div class="s-step-icon"><i class="fas fa-bell"></i></div>
+        <div class="s-step-title">Alertas</div>
+        <div class="s-step-desc">Si un servicio falla, Sentinel registra una alerta automáticamente. Visible en los logs del contenedor <strong style="color:var(--s-text)">worker</strong>.</div>
+        <span class="s-badge s-badge-muted"><i class="fas fa-terminal"></i> docker logs worker</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- API REST -->
+  <div class="s-section-title"><i class="fas fa-plug"></i> API REST</div>
+  <div class="s-table-card mb-4">
+    <div class="s-card-header">
+      Todos los endpoints requieren <code>Authorization: Bearer &lt;token&gt;</code>
+    </div>
+    <table class="s-api-table">
+      <thead>
+        <tr><th>Método</th><th>Endpoint</th><th>Descripción</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="s-method m-get">GET</span></td><td><code>/api/v1/services/</code></td><td>Lista todos los servicios registrados</td></tr>
+        <tr><td><span class="s-method m-post">POST</span></td><td><code>/api/v1/services/</code></td><td>Crea un nuevo servicio a monitorear</td></tr>
+        <tr><td><span class="s-method m-get">GET</span></td><td><code>/api/v1/services/{id}/</code></td><td>Detalle y estado actual de un servicio</td></tr>
+        <tr><td><span class="s-method m-post">POST</span></td><td><code>/api/v1/services/{id}/ping/</code></td><td>Dispara un ping manual inmediato</td></tr>
+        <tr><td><span class="s-method m-get">GET</span></td><td><code>/api/v1/services/{id}/history/</code></td><td>Historial de checks (últimos 50)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Infra -->
+  <div class="s-section-title"><i class="fas fa-cubes"></i> Infraestructura Docker</div>
+  <div class="row mb-4">
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="s-infra-card">
+        <div class="s-infra-icon" style="background:rgba(74,158,255,0.1)"><i class="fas fa-globe" style="color:var(--s-primary)"></i></div>
+        <div><div class="s-infra-name">web</div><div class="s-infra-desc">Django + Gunicorn · :8000</div></div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="s-infra-card">
+        <div class="s-infra-icon" style="background:rgba(40,199,111,0.1)"><i class="fas fa-cogs" style="color:var(--s-success)"></i></div>
+        <div><div class="s-infra-name">worker</div><div class="s-infra-desc">Celery · ejecuta pings</div></div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="s-infra-card">
+        <div class="s-infra-icon" style="background:rgba(255,159,67,0.1)"><i class="fas fa-clock" style="color:var(--s-warning)"></i></div>
+        <div><div class="s-infra-name">beat</div><div class="s-infra-desc">Celery Beat · agenda tareas</div></div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="s-infra-card">
+        <div class="s-infra-icon" style="background:rgba(234,84,85,0.1)"><i class="fas fa-database" style="color:var(--s-danger)"></i></div>
+        <div><div class="s-infra-name">db + redis</div><div class="s-infra-desc">PostgreSQL 16 + Redis 7</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin models -->
+  {% if app_list %}
+  <div class="s-section-title"><i class="fas fa-th-large"></i> Administración</div>
+  {% for app in app_list %}
+  <div class="s-model-card">
+    <div class="s-model-header">{{ app.name }}</div>
+    <div class="s-model-body">
+      {% for model in app.models %}
+      <span>
+        <a href="{{ model.admin_url }}" class="s-model-link">{{ model.name }}</a>
+        {% if model.add_url %}<a href="{{ model.add_url }}" class="s-add-link">+ Add</a>{% endif %}
+      </span>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+</div>
+{% endblock %}
