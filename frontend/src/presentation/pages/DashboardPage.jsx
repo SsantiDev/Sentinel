@@ -4,17 +4,30 @@ import { useServices } from '../../application/hooks/useServices'
 import { useAuth } from '../../application/hooks/useAuth'
 import { ServiceCard } from '../components/ServiceCard'
 import { CreateServiceModal } from '../components/CreateServiceModal'
+import { SummaryCards } from '../components/SummaryCards'
 
 export function DashboardPage() {
   const { services, loading, error, refetch, silentRefetch } = useServices()
   const { logout } = useAuth()
   const navigate = useNavigate()
   const [showModal, setShowModal] = useState(false)
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     const id = setInterval(silentRefetch, 30000)
     return () => clearInterval(id)
   }, [silentRefetch])
+
+  const filteredServices = services
+    .filter(s => 
+      s.name.toLowerCase().includes(search.toLowerCase()) || 
+      s.url.toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (a.status === 'down' && b.status !== 'down') return -1
+      if (a.status !== 'down' && b.status === 'down') return 1
+      return 0
+    })
 
   const up = services.filter((s) => s.status === 'up').length
   const down = services.filter((s) => s.status === 'down').length
@@ -48,8 +61,21 @@ export function DashboardPage() {
       <main className="p-6">
         {loading && <p className="text-gray-400">Cargando...</p>}
         {error && <p className="text-red-400">{error}</p>}
+        
+        {!loading && <SummaryCards services={services} />}
+
+        <div className="flex mb-6">
+          <input
+            type="text"
+            placeholder="Buscar por nombre o URL..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="bg-[#1a1a2e] border border-[#2a2a3e] text-white px-4 py-2 rounded-lg w-full max-w-md focus:outline-none focus:border-[#2ecc71] transition-colors"
+          />
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {services.map((s) => <ServiceCard key={s.id} service={s} />)}
+          {filteredServices.map((s) => <ServiceCard key={s.id} service={s} />)}
         </div>
       </main>
       {showModal && <CreateServiceModal onClose={() => setShowModal(false)} onSuccess={refetch} />}
