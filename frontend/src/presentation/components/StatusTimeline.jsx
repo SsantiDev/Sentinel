@@ -18,7 +18,7 @@ export function StatusTimeline({ history = [], limit = 30 }) {
   return (
     <div className="flex gap-1 items-center w-full">
       {blocks.map((check, i) => {
-        let colorClass = 'bg-[#2a2a3e]' // None / Unknown
+        let colorClass = 'bg-border-subtle/40' // None / Unknown
         
         if (check.status === 'up') {
           colorClass = check.response_time_ms > 500 ? 'bg-yellow-500 shadow-[0_0_5px_rgba(234,179,8,0.3)]' : 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.3)]'

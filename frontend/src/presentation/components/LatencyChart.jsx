@@ -1,21 +1,57 @@
-﻿import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
+import { useTheme } from '../../application/context/ThemeContext'
 
 export function LatencyChart({ history }) {
+  const { isDark } = useTheme()
   const data = [...history].reverse().map((c) => ({
-    time: new Date(c.checked_at).toLocaleTimeString(),
+    time: new Date(c.checked_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     ms: c.response_time_ms ?? 0,
   }))
 
+  const colors = {
+    grid: isDark ? '#2a2a3e' : '#e2e8f0',
+    text: isDark ? '#9ca3af' : '#64748b',
+    tooltipBg: isDark ? '#1a1a2e' : '#ffffff',
+    tooltipBorder: isDark ? '#2a2a3e' : '#e2e8f0',
+    tooltipText: isDark ? '#ffffff' : '#0f172a',
+  }
+
   return (
-    <div className="bg-[#1a1a2e] border border-[#2a2a3e] rounded-xl p-5">
-      <h3 className="text-gray-400 text-sm mb-4">Latencia (ms)</h3>
-      <ResponsiveContainer width="100%" height={200}>
-        <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3e" />
-          <XAxis dataKey="time" tick={{ fill: '#6b7280', fontSize: 11 }} />
-          <YAxis tick={{ fill: '#6b7280', fontSize: 11 }} />
-          <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid #2a2a3e', color: '#fff' }} />
-          <Line type="monotone" dataKey="ms" stroke="#2ecc71" dot={false} strokeWidth={2} />
+    <div className="w-full h-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={colors.grid} />
+          <XAxis 
+            dataKey="time" 
+            tick={{ fill: colors.text, fontSize: 10, fontWeight: 500 }} 
+            axisLine={false}
+            tickLine={false}
+            dy={10}
+          />
+          <YAxis 
+            tick={{ fill: colors.text, fontSize: 10, fontWeight: 500 }} 
+            axisLine={false}
+            tickLine={false}
+          />
+          <Tooltip 
+            contentStyle={{ 
+              backgroundColor: colors.tooltipBg, 
+              borderColor: colors.tooltipBorder, 
+              borderRadius: '12px',
+              fontSize: '12px',
+              color: colors.tooltipText,
+              boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'
+            }} 
+            itemStyle={{ color: colors.tooltipText }}
+          />
+          <Line 
+            type="monotone" 
+            dataKey="ms" 
+            stroke="#2ecc71" 
+            dot={false} 
+            strokeWidth={3}
+            animationDuration={1000}
+          />
         </LineChart>
       </ResponsiveContainer>
     </div>
