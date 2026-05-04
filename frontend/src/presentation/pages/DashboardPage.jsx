@@ -8,7 +8,7 @@ import { SummaryCards } from '../components/SummaryCards'
 import { SkeletonCard, SkeletonSummary } from '../components/SkeletonCard'
 
 export function DashboardPage() {
-  const { services, loading, error, refetch, silentRefetch } = useServices()
+  const { services, loading, error, refetch, silentRefetch, toggleService } = useServices()
   const [showModal, setShowModal] = useState(false)
   const [search, setSearch] = useState('')
 
@@ -77,7 +77,7 @@ export function DashboardPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.05 }}
             >
-              <ServiceCard service={s} />
+              <ServiceCard service={s} onToggle={toggleService} />
             </motion.div>
           ))
         ) : (
