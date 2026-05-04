@@ -14,8 +14,37 @@ def ping_service(service_id: int, repo: IServiceRepository, notifier: IAlertNoti
     result.service_id = service_id
     repo.save_check_result(result)
 
-    if result.status == ServiceStatus.DOWN:
+    # Evaluate Alert Rules
+    rules = repo.get_alert_rules(service_id)
+    
+    # If no rules exist, we use a default behavior (global alert)
+    if not rules and result.status == ServiceStatus.DOWN:
         from application.use_cases.send_alert import send_alert
-        send_alert(service, result, notifier)
+        send_alert(service, result, notifier, alert_type='down')
+        return result
+
+    for rule in rules:
+        should_alert = False
+        
+        if rule.condition == 'consecutive_failures' and result.status == ServiceStatus.DOWN:
+            failure_count = repo.get_consecutive_failures(service_id)
+            if failure_count >= rule.threshold:
+                should_alert = True
+        
+        elif rule.condition == 'latency_above':
+            if result.response_time_ms and result.response_time_ms >= rule.threshold:
+                should_alert = True
+
+        if should_alert:
+            from application.use_cases.send_alert import send_alert
+            # We pass the rule's contact to send_alert
+            send_alert(
+                service, 
+                result, 
+                notifier, 
+                recipient=rule.contact, 
+                alert_type=rule.condition,
+                threshold=rule.threshold
+            )
 
     return result
