@@ -1,15 +1,17 @@
 import { useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { ArrowLeft, RefreshCw, Clock, Search, ChevronDown, ChevronUp } from 'lucide-react'
 import { useServiceDetail } from '../../application/hooks/useServiceDetail'
 import { StatusBadge } from '../components/StatusBadge'
 import { LatencyChart } from '../components/LatencyChart'
 import { StatusTimeline } from '../components/StatusTimeline'
+import { cn } from '../../infrastructure/utils'
 
 export function ServiceDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { service, history, loading, ping } = useServiceDetail(id)
-  
+
   const [sort, setSort] = useState({ key: 'checked_at', dir: 'desc' })
   const [filter, setFilter] = useState('')
 
@@ -23,8 +25,8 @@ export function ServiceDetailPage() {
 
   const filteredHistory = useMemo(() => {
     if (!history) return []
-    
-    let result = history.filter(h => 
+
+    let result = history.filter(h =>
       h.status.toLowerCase().includes(filter.toLowerCase()) ||
       (h.error_message && h.error_message.toLowerCase().includes(filter.toLowerCase())) ||
       (h.status_code && h.status_code.toString().includes(filter))
@@ -33,7 +35,7 @@ export function ServiceDetailPage() {
     return result.sort((a, b) => {
       let aVal = a[sort.key]
       let bVal = b[sort.key]
-      
+
       if (sort.key === 'checked_at') {
         aVal = new Date(aVal).getTime()
         bVal = new Date(bVal).getTime()
@@ -52,137 +54,160 @@ export function ServiceDetailPage() {
     }))
   }
 
-  const SortIcon = ({ column }) => {
-    if (sort.key !== column) return <span className="opacity-20 ml-1 text-[8px]">↕</span>
-    return <span className="ml-1 text-[8px] text-blue-400">{sort.dir === 'desc' ? '↓' : '↑'}</span>
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <RefreshCw size={32} className="text-[#2ecc71] animate-spin" />
+        <p className="text-text-secondary animate-pulse font-medium">Obteniendo detalles...</p>
+      </div>
+    )
   }
 
-  if (loading) return <div className="min-h-screen bg-[#0f0f1a] flex items-center justify-center text-gray-400">Cargando...</div>
   if (!service) return null
 
   return (
-    <div className="min-h-screen bg-[#0f0f1a]">
-      <header className="border-b border-[#2a2a3e] px-6 py-4 flex items-center gap-4">
-        <button onClick={() => navigate('/dashboard')} className="text-gray-400 hover:text-white transition-colors">← Volver</button>
-        <h1 className="text-white font-bold text-xl">{service.name}</h1>
-        <StatusBadge status={service.status} />
-      </header>
-      <main className="p-6 space-y-6 w-full mx-auto">
-        <div className="bg-[#1a1a2e] border border-[#2a2a3e] rounded-xl p-6 flex flex-wrap items-center justify-between gap-6 shadow-xl">
-          <div className="flex-1 min-w-[200px]">
-            <p className="text-gray-400 text-sm font-mono opacity-70">{service.url}</p>
-            <div className="flex gap-4 mt-4">
-              <div className="bg-[#0f0f1a] px-4 py-3 rounded-xl border border-[#2a2a3e] min-w-[100px]">
-                <p className="text-gray-500 text-[10px] uppercase font-bold tracking-wider mb-1">Uptime</p>
-                <p className="text-green-400 font-bold text-xl">{stats?.uptime || '100'}%</p>
-              </div>
-              <div className="bg-[#0f0f1a] px-4 py-3 rounded-xl border border-[#2a2a3e] min-w-[100px]">
-                <p className="text-gray-500 text-[10px] uppercase font-bold tracking-wider mb-1">Fallos</p>
-                <p className="text-red-400 font-bold text-xl">{stats?.outages || '0'}</p>
-              </div>
-              <div className="bg-[#0f0f1a] px-4 py-3 rounded-xl border border-[#2a2a3e] min-w-[100px]">
-                <p className="text-gray-500 text-[10px] uppercase font-bold tracking-wider mb-1">Intervalo</p>
-                <p className="text-blue-400 font-bold text-xl">{service.check_interval_seconds}s</p>
-              </div>
-            </div>
-          </div>
+    <div className="w-full space-y-8 pb-10">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex items-center gap-4">
           <button
-            onClick={ping}
-            className="bg-[#2ecc71] text-[#0f0f1a] font-bold px-8 py-4 rounded-xl hover:bg-[#27ae60] transition-all hover:scale-105 active:scale-95 text-sm shadow-lg shadow-green-500/20"
+            onClick={() => navigate('/dashboard')}
+            className="p-2.5 rounded-xl bg-bg-card border border-border-subtle text-text-secondary hover:text-text-primary hover:border-text-secondary transition-all"
           >
-            Ejecutar Ping
+            <ArrowLeft size={20} />
           </button>
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <h2 className="text-text-primary text-2xl font-black tracking-tight">{service.name}</h2>
+              <StatusBadge status={service.status} />
+            </div>
+            <p className="text-text-secondary text-xs font-mono opacity-80">{service.url}</p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-7 space-y-6">
-            <LatencyChart history={history} />
-            
-            <div className="bg-[#1a1a2e] border border-[#2a2a3e] rounded-xl p-5 shadow-lg">
-              <h3 className="text-gray-400 text-sm font-medium mb-4">Disponibilidad Reciente</h3>
-              <StatusTimeline history={history} limit={50} />
-              <div className="flex justify-between mt-3 text-[10px] text-gray-500 uppercase tracking-widest font-bold">
-                <span>Hace 50 pings</span>
-                <span>Ahora</span>
-              </div>
+        <button
+          onClick={ping}
+          className="flex items-center justify-center gap-2 bg-[#2ecc71] text-[#0f0f1a] font-black px-6 py-3 rounded-xl hover:bg-[#27ae60] transition-all hover:scale-105 active:scale-95 shadow-lg shadow-green-500/20"
+        >
+          <RefreshCw size={18} />
+          Ejecutar Ping
+        </button>
+      </div>
+
+      {/* Stats Bento Box */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-bg-card border border-border-subtle p-5 rounded-3xl">
+          <p className="text-text-secondary text-[10px] uppercase font-black tracking-widest mb-2">Uptime</p>
+          <p className="text-green-500 font-black text-2xl tracking-tighter">{stats?.uptime || '100'}%</p>
+        </div>
+        <div className="bg-bg-card border border-border-subtle p-5 rounded-3xl">
+          <p className="text-text-secondary text-[10px] uppercase font-black tracking-widest mb-2">Outages</p>
+          <p className="text-red-500 font-black text-2xl tracking-tighter">{stats?.outages || '0'}</p>
+        </div>
+        <div className="bg-bg-card border border-border-subtle p-5 rounded-3xl">
+          <p className="text-text-secondary text-[10px] uppercase font-black tracking-widest mb-2">Frecuencia</p>
+          <p className="text-blue-500 font-black text-2xl tracking-tighter">{service.check_interval_seconds}s</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-8 space-y-6">
+          <div className="bg-bg-card border border-border-subtle rounded-3xl p-6 shadow-sm overflow-hidden">
+            <h3 className="text-text-primary font-bold mb-6 flex items-center gap-2">
+              <Activity size={18} className="text-blue-500" />
+              Latencia en tiempo real
+            </h3>
+            <div className="h-[300px] w-full">
+              <LatencyChart history={history} />
             </div>
           </div>
 
-          <div className="lg:col-span-5">
-            <div className="bg-[#1a1a2e] border border-[#2a2a3e] rounded-xl shadow-lg overflow-hidden flex flex-col h-full max-h-[600px]">
-              <div className="px-5 py-4 border-b border-[#2a2a3e] bg-[#1a1a2e]/50 flex items-center justify-between gap-4">
-                <h3 className="text-white font-semibold text-sm whitespace-nowrap">Historial</h3>
+          <div className="bg-bg-card border border-border-subtle rounded-3xl p-6 shadow-sm">
+            <h3 className="text-text-primary font-bold mb-4 flex items-center gap-2 text-sm">
+              <Clock size={18} className="text-emerald-500" />
+              Disponibilidad Reciente
+            </h3>
+            <StatusTimeline history={history} limit={50} />
+            <div className="flex justify-between mt-3 text-[10px] text-text-secondary uppercase tracking-widest font-black opacity-60">
+              <span>Hace 50 pings</span>
+              <span>Ahora</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="lg:col-span-4 flex flex-col">
+          <div className="bg-bg-card border border-border-subtle rounded-3xl shadow-sm overflow-hidden flex flex-col h-full max-h-[567px]">
+            <div className="p-5 border-b border-border-subtle flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-text-primary font-bold text-sm">Historial</h3>
+                <span className="text-[10px] font-black bg-bg-main text-text-secondary px-2 py-1 rounded-lg">
+                  {filteredHistory.length} entradas
+                </span>
+              </div>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" size={14} />
                 <input
                   type="text"
-                  placeholder="Filtrar historial..."
+                  placeholder="Filtrar eventos..."
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}
-                  className="bg-[#0f0f1a] border border-[#2a2a3e] text-xs text-white px-3 py-1.5 rounded-lg w-full max-w-[150px] focus:outline-none focus:border-blue-500/50 transition-all shadow-inner"
+                  className="bg-bg-main border border-border-subtle text-xs text-text-primary px-9 py-2 rounded-xl w-full focus:outline-none focus:border-[#2ecc71] transition-all"
                 />
               </div>
-              <div className="overflow-y-auto flex-1 custom-scrollbar">
-                <table className="w-full text-sm">
-                  <thead className="sticky top-0 bg-[#1a1a2e] z-10 shadow-sm">
-                    <tr className="border-b border-[#2a2a3e] text-gray-400 text-[9px] uppercase tracking-wider font-bold">
-                      <th className="px-4 py-3 text-left cursor-pointer hover:text-white transition-colors group" onClick={() => handleSort('status')}>
-                        <div className="flex items-center gap-1">
-                          Estado
-                          <svg className={`opacity-0 group-hover:opacity-100 transition-opacity ${sort.key === 'status' ? 'opacity-100 text-blue-400' : ''}`} xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                          </svg>
-                          <SortIcon column="status" />
-                        </div>
-                      </th>
-                      <th className="px-4 py-3 text-left cursor-pointer hover:text-white transition-colors group" onClick={() => handleSort('status_code')}>
-                        <div className="flex items-center gap-1">
-                          Cod
-                          <svg className={`opacity-0 group-hover:opacity-100 transition-opacity ${sort.key === 'status_code' ? 'opacity-100 text-blue-400' : ''}`} xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                          </svg>
-                          <SortIcon column="status_code" />
-                        </div>
-                      </th>
-                      <th className="px-4 py-3 text-left cursor-pointer hover:text-white transition-colors group" onClick={() => handleSort('response_time_ms')}>
-                        <div className="flex items-center gap-1">
-                          Lat
-                          <svg className={`opacity-0 group-hover:opacity-100 transition-opacity ${sort.key === 'response_time_ms' ? 'opacity-100 text-blue-400' : ''}`} xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                          </svg>
-                          <SortIcon column="response_time_ms" />
-                        </div>
-                      </th>
-                      <th className="px-4 py-3 text-left cursor-pointer hover:text-white transition-colors group" onClick={() => handleSort('checked_at')}>
-                        <div className="flex items-center gap-1">
-                          Fecha
-                          <svg className={`opacity-0 group-hover:opacity-100 transition-opacity ${sort.key === 'checked_at' ? 'opacity-100 text-blue-400' : ''}`} xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                          </svg>
-                          <SortIcon column="checked_at" />
-                        </div>
-                      </th>
+            </div>
+
+            <div className="overflow-y-auto flex-1 custom-scrollbar">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-bg-card z-10">
+                  <tr className="border-b border-border-subtle text-text-secondary text-[10px] uppercase tracking-wider font-black">
+                    <th className="px-4 py-3 text-center cursor-pointer hover:text-text-primary" onClick={() => handleSort('status')}>
+                      UP
+                    </th>
+                    <th className="px-4 py-3 text-center cursor-pointer hover:text-text-primary" onClick={() => handleSort('status_code')}>
+                      COD
+                    </th>
+                    <th className="px-4 py-3 text-center cursor-pointer hover:text-text-primary" onClick={() => handleSort('response_time_ms')}>
+                      LAT
+                    </th>
+                    <th className="px-4 py-3 text-center cursor-pointer hover:text-text-primary" onClick={() => handleSort('checked_at')}>
+                      FECHA
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border-subtle/30">
+                  {filteredHistory.map((c) => (
+                    <tr key={c.id} className="hover:bg-bg-main/50 transition-colors group text-center">
+                      <td className="px-4 py-3 flex justify-center"><StatusBadge status={c.status} /></td>
+                      <td className="px-4 py-3 text-text-secondary font-mono text-xs">{c.status_code ?? '—'}</td>
+                      <td className="px-4 py-3 text-text-primary font-black text-xs">
+                        {c.response_time_ms != null ? `${Math.round(c.response_time_ms)}ms` : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-text-secondary font-mono text-[10px] whitespace-nowrap">
+                        {c.checked_at ? new Date(c.checked_at).toLocaleString('es-CO', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : '—'}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {filteredHistory.map((c) => (
-                      <tr key={c.id} className="border-b border-[#2a2a3e] last:border-0 hover:bg-[#0f0f1a] transition-colors">
-                        <td className="px-4 py-3"><StatusBadge status={c.status} /></td>
-                        <td className="px-4 py-3 text-gray-300 font-mono">{c.status_code ?? '—'}</td>
-                        <td className="px-4 py-3 text-gray-300 font-medium">{c.response_time_ms != null ? `${Math.round(c.response_time_ms)}ms` : '—'}</td>
-                        <td className="px-4 py-3 text-gray-400 text-[11px] whitespace-nowrap">{new Date(c.checked_at).toLocaleString()}</td>
-                      </tr>
-                    ))}
-                    {filteredHistory.length === 0 && (
-                      <tr>
-                        <td colSpan="4" className="px-4 py-10 text-center text-gray-500 text-xs italic">No hay resultados que coincidan</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                  {filteredHistory.length === 0 && (
+                    <tr>
+                      <td colSpan="4" className="px-4 py-10 text-center text-text-secondary text-xs italic">
+                        Sin resultados
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
+  )
+}
+
+function Activity({ className, size }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+    </svg>
   )
 }

@@ -1,15 +1,14 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { Plus, Search, Layers } from 'lucide-react'
 import { useServices } from '../../application/hooks/useServices'
-import { useAuth } from '../../application/hooks/useAuth'
 import { ServiceCard } from '../components/ServiceCard'
 import { CreateServiceModal } from '../components/CreateServiceModal'
 import { SummaryCards } from '../components/SummaryCards'
+import { SkeletonCard, SkeletonSummary } from '../components/SkeletonCard'
 
 export function DashboardPage() {
   const { services, loading, error, refetch, silentRefetch } = useServices()
-  const { logout } = useAuth()
-  const navigate = useNavigate()
   const [showModal, setShowModal] = useState(false)
   const [search, setSearch] = useState('')
 
@@ -29,55 +28,67 @@ export function DashboardPage() {
       return 0
     })
 
-  const up = services.filter((s) => s.status === 'up').length
-  const down = services.filter((s) => s.status === 'down').length
-
   return (
-    <div className="min-h-screen bg-[#0f0f1a]">
-      <header className="border-b border-[#2a2a3e] px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <h1 className="text-white font-bold text-xl">Sentinel</h1>
-          <div className="flex gap-4 text-sm">
-            <span className="text-gray-400">{services.length} servicios</span>
-            <span className="text-green-400">{up} UP</span>
-            <span className="text-red-400">{down} DOWN</span>
-          </div>
+    <div className="w-full">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+        <div>
+          <h2 className="text-text-primary text-3xl font-black tracking-tight mb-1">Servicios</h2>
+          <p className="text-text-secondary text-xs font-medium">Monitoreo activo de infraestructura</p>
         </div>
-        <div className="flex items-center gap-4">
+        
+        <div className="flex items-center gap-3">
+          <div className="relative group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-[#2ecc71] transition-colors" size={18} />
+            <input
+              type="text"
+              placeholder="Filtrar servicios..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="bg-bg-card border border-border-subtle text-text-primary pl-10 pr-4 py-2.5 rounded-xl w-full md:w-64 focus:outline-none focus:border-[#2ecc71] transition-all shadow-sm"
+            />
+          </div>
           <button
             onClick={() => setShowModal(true)}
-            className="bg-[#2ecc71] text-[#0f0f1a] font-bold px-4 py-2 rounded-lg hover:bg-[#27ae60] transition-colors text-sm"
+            className="flex items-center gap-2 bg-[#2ecc71] text-[#0f0f1a] font-bold px-5 py-2.5 rounded-xl hover:bg-[#27ae60] hover:scale-105 active:scale-95 transition-all shadow-lg shadow-green-500/10 whitespace-nowrap"
           >
-            + Nuevo Servicio
-          </button>
-          <button
-            onClick={() => { logout(); navigate('/login') }}
-            className="text-gray-400 hover:text-white text-sm transition-colors"
-          >
-            Salir
+            <Plus size={20} />
+            Nuevo
           </button>
         </div>
-      </header>
-      <main className="p-6">
-        {loading && <p className="text-gray-400">Cargando...</p>}
-        {error && <p className="text-red-400">{error}</p>}
-        
-        {!loading && <SummaryCards services={services} />}
+      </div>
 
-        <div className="flex mb-6">
-          <input
-            type="text"
-            placeholder="Buscar por nombre o URL..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="bg-[#1a1a2e] border border-[#2a2a3e] text-white px-4 py-2 rounded-lg w-full max-w-md focus:outline-none focus:border-[#2ecc71] transition-colors"
-          />
-        </div>
+      {loading ? <SkeletonSummary /> : <SummaryCards services={services} />}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredServices.map((s) => <ServiceCard key={s.id} service={s} />)}
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-6 mb-8 flex items-center gap-4 text-red-400">
+          <div className="bg-red-500/20 p-2 rounded-lg">!</div>
+          <p className="font-medium">{error}</p>
         </div>
-      </main>
+      )}
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {loading ? (
+          [...Array(8)].map((_, i) => <SkeletonCard key={i} />)
+        ) : filteredServices.length > 0 ? (
+          filteredServices.map((s, idx) => (
+            <motion.div
+              key={s.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.05 }}
+            >
+              <ServiceCard service={s} />
+            </motion.div>
+          ))
+        ) : (
+          <div className="col-span-full py-20 flex flex-col items-center justify-center bg-bg-card/50 rounded-[40px] border-2 border-dashed border-border-subtle">
+            <Layers size={48} className="text-text-secondary mb-4 opacity-20" />
+            <p className="text-text-secondary font-bold text-lg">No se encontraron servicios</p>
+            <p className="text-text-secondary text-sm mt-1 opacity-60">Intenta con otra búsqueda o crea uno nuevo</p>
+          </div>
+        )}
+      </div>
+
       {showModal && <CreateServiceModal onClose={() => setShowModal(false)} onSuccess={refetch} />}
     </div>
   )
