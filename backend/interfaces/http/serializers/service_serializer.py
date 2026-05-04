@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from infrastructure.models import ServiceModel, CheckResultModel
+from infrastructure.models import ServiceModel, CheckResultModel, AlertRuleModel
 
 
 class ServiceSerializer(serializers.ModelSerializer):
@@ -34,7 +34,18 @@ class ServiceSerializer(serializers.ModelSerializer):
 
 
 class CheckResultSerializer(serializers.ModelSerializer):
+    service_name = serializers.CharField(source='service.name', read_only=True)
+
     class Meta:
         model = CheckResultModel
-        fields = ['id', 'service', 'status', 'response_time_ms', 'status_code', 'error_message', 'checked_at']
+        fields = ['id', 'service', 'service_name', 'status', 'response_time_ms', 'status_code', 'error_message', 'checked_at']
         read_only_fields = fields
+
+
+class AlertRuleSerializer(serializers.ModelSerializer):
+    service_name = serializers.CharField(source='service.name', read_only=True)
+
+    class Meta:
+        model = AlertRuleModel
+        fields = ['id', 'service', 'service_name', 'condition', 'threshold', 'channel', 'contact', 'is_active', 'created_at']
+        read_only_fields = ['id', 'service_name', 'created_at']
