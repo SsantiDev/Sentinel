@@ -20,7 +20,12 @@ def ping_service_task(self, service_id: int):
     repo = DjangoServiceRepository()
     notifier = _build_notifier()
     try:
-        return ping_service(service_id, repo, notifier)
+        res = ping_service(service_id, repo, notifier)
+        return {
+            "service_id": service_id,
+            "status": res.status.value,
+            "response_time": res.response_time_ms
+        }
     except Exception as exc:
         raise self.retry(exc=exc, countdown=30)
 
