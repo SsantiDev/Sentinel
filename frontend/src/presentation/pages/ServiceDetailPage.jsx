@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, RefreshCw, Clock, Search, ChevronDown, ChevronUp } from 'lucide-react'
+import { ArrowLeft, RefreshCw, Clock, Search, ChevronDown, ChevronUp, Power } from 'lucide-react'
 import { useServiceDetail } from '../../application/hooks/useServiceDetail'
 import { StatusBadge } from '../components/StatusBadge'
 import { LatencyChart } from '../components/LatencyChart'
@@ -10,7 +10,7 @@ import { cn } from '../../infrastructure/utils'
 export function ServiceDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { service, history, loading, ping } = useServiceDetail(id)
+  const { service, history, loading, ping, toggleStatus } = useServiceDetail(id)
 
   const [sort, setSort] = useState({ key: 'checked_at', dir: 'desc' })
   const [filter, setFilter] = useState('')
@@ -79,19 +79,38 @@ export function ServiceDetailPage() {
           <div>
             <div className="flex items-center gap-3 mb-1">
               <h2 className="text-text-primary text-2xl font-black tracking-tight">{service.name}</h2>
-              <StatusBadge status={service.status} />
+              <StatusBadge status={service.is_active ? service.status : 'inactive'} />
             </div>
             <p className="text-text-secondary text-xs font-mono opacity-80">{service.url}</p>
           </div>
         </div>
 
-        <button
-          onClick={ping}
-          className="flex items-center justify-center gap-2 bg-[#2ecc71] text-[#0f0f1a] font-black px-6 py-3 rounded-xl hover:bg-[#27ae60] transition-all hover:scale-105 active:scale-95 shadow-lg shadow-green-500/20"
-        >
-          <RefreshCw size={18} />
-          Ejecutar Ping
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={toggleStatus}
+            className={cn(
+              "flex items-center justify-center gap-2 font-black px-6 py-3 rounded-xl transition-all hover:scale-105 active:scale-95 shadow-lg",
+              service.is_active 
+                ? "bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 shadow-red-500/5" 
+                : "bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 shadow-green-500/5"
+            )}
+          >
+            <Power size={18} />
+            {service.is_active ? 'Desactivar' : 'Activar'}
+          </button>
+
+          <button
+            onClick={ping}
+            disabled={!service.is_active}
+            className={cn(
+              "flex items-center justify-center gap-2 bg-[#2ecc71] text-[#0f0f1a] font-black px-6 py-3 rounded-xl hover:bg-[#27ae60] transition-all hover:scale-105 active:scale-95 shadow-lg shadow-green-500/20",
+              !service.is_active && "opacity-50 cursor-not-allowed grayscale"
+            )}
+          >
+            <RefreshCw size={18} />
+            Ejecutar Ping
+          </button>
+        </div>
       </div>
 
       {/* Stats Bento Box */}
