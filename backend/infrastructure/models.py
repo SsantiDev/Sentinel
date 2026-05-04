@@ -1,6 +1,28 @@
 from django.db import models
 
 
+class AlertRuleModel(models.Model):
+    CONDITION_CHOICES = [
+        ('consecutive_failures', 'Consecutive Failures'),
+        ('latency_above', 'Latency Above'),
+    ]
+    CHANNEL_CHOICES = [('email', 'Email')]
+
+    service = models.ForeignKey('ServiceModel', on_delete=models.CASCADE, related_name='alert_rules')
+    condition = models.CharField(max_length=30, choices=CONDITION_CHOICES)
+    threshold = models.FloatField(help_text='Failures count or ms value')
+    channel = models.CharField(max_length=20, choices=CHANNEL_CHOICES, default='email')
+    contact = models.CharField(max_length=255, help_text='Email address')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'alert_rules'
+
+    def __str__(self):
+        return f'{self.service.name} — {self.condition} > {self.threshold}'
+
+
 class ServiceModel(models.Model):
     name = models.CharField(max_length=255)
     url = models.URLField()
