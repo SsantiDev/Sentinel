@@ -1,26 +1,66 @@
 @import "tailwindcss";
 
-/* Custom Scrollbar */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+@theme {
+  --color-bg-main: var(--bg-main);
+  --color-bg-card: var(--bg-card);
+  --color-border-subtle: var(--border-subtle);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+:root {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  
+  /* Light Mode (Default) */
+  --bg-main: #f8fafc;
+  --bg-card: #ffffff;
+  --border-subtle: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  
+  --accent: #2ecc71;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #2a2a3e;
+.dark {
+  /* Dark Mode */
+  --bg-main: #0f0f1a;
+  --bg-card: #1a1a2e;
+  --border-subtle: #2a2a3e;
+  --text-primary: #ffffff;
+  --text-secondary: #9ca3af;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Custom Scrollbar Global */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-main);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
   border-radius: 10px;
+  border: 2px solid var(--bg-main);
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+::-webkit-scrollbar-thumb:hover {
   background: #3a3a5e;
 }
 
 /* For Firefox */
-.custom-scrollbar {
+* {
   scrollbar-width: thin;
-  scrollbar-color: #2a2a3e transparent;
+  scrollbar-color: var(--border-subtle) var(--bg-main);
 }
