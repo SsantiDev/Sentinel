@@ -34,5 +34,25 @@ class CheckResult:
 @dataclass
 class Alert:
     service_id: int
+    service_name: str
+    service_url: str
+    status: str
     message: str
+    alert_type: str  # 'down', 'latency', 'consecutive_failures'
+    recipient: Optional[str] = None
+    response_time_ms: Optional[float] = None
+    error_message: Optional[str] = None
+    condition_threshold: Optional[float] = None
+    checked_at: Optional[datetime] = None
     sent_at: Optional[datetime] = None
+
+
+@dataclass
+class AlertRule:
+    id: Optional[int]
+    service_id: int
+    condition: str  # 'consecutive_failures', 'latency_above'
+    threshold: float
+    channel: str  # 'email'
+    contact: str
+    is_active: bool = True
