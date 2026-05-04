@@ -1,14 +1,16 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
+import { GalaxyBackground } from './GalaxyBackground'
 
 export function Layout({ children }) {
   const location = useLocation()
 
   return (
-    <div className="flex h-screen bg-bg-main text-text-primary transition-colors duration-300 overflow-hidden">
+    <div className="dark flex h-screen bg-bg-main text-text-primary transition-colors duration-300 overflow-hidden relative">
+      <GalaxyBackground interactive={false} subtle={true} />
       <Sidebar />
-      <main className="flex-1 h-full overflow-y-auto custom-scrollbar pb-20 md:pb-0">
+      <main className="flex-1 h-full overflow-y-auto custom-scrollbar pb-20 md:pb-0 relative z-10">
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
