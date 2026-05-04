@@ -1,12 +1,29 @@
+from typing import Optional
 from domain.entities.service import Service, CheckResult, Alert
 from domain.interfaces.alert_notifier import IAlertNotifier
 from datetime import datetime, UTC
 
 
-def send_alert(service: Service, result: CheckResult, notifier: IAlertNotifier) -> None:
+def send_alert(
+    service: Service, 
+    result: CheckResult, 
+    notifier: IAlertNotifier, 
+    recipient: Optional[str] = None,
+    alert_type: str = 'down',
+    threshold: Optional[float] = None
+) -> None:
     alert = Alert(
         service_id=service.id,
-        message=f"[DOWN] {service.name} ({service.url}) — {result.error_message or result.status_code}",
+        service_name=service.name,
+        service_url=service.url,
+        status=result.status.value,
+        message=f"Sentinel Detectó una Alerta de {alert_type.replace('_', ' ').title()}",
+        alert_type=alert_type,
+        recipient=recipient,
+        response_time_ms=result.response_time_ms,
+        error_message=result.error_message or "Sin mensaje de error detallado",
+        condition_threshold=threshold,
+        checked_at=result.checked_at,
         sent_at=datetime.now(UTC),
     )
     notifier.send(alert)
