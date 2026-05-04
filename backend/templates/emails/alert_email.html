@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notificación de Sentinel</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+            margin: 0;
+            padding: 0;
+        }
+        .wrapper {
+            width: 100%;
+            background-color: #f3f4f6;
+            padding: 40px 0;
+        }
+        .main-card {
+            max-width: 600px;
+            background-color: #ffffff;
+            margin: 0 auto;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
+            border: 1px solid #e5e7eb;
+        }
+        .header {
+            padding: 48px 40px 24px 40px;
+            text-align: left;
+        }
+        .brand {
+            color: #4f46e5;
+            font-weight: 800;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 16px;
+            display: block;
+        }
+        .title {
+            font-size: 28px;
+            font-weight: 800;
+            color: #111827;
+            margin: 0;
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+        }
+        .status-badge {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .status-down {
+            background-color: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        .status-latency {
+            background-color: #fffbeb;
+            color: #92400e;
+            border: 1px solid #fde68a;
+        }
+        .content {
+            padding: 0 40px 48px 40px;
+        }
+        .service-card {
+            background-color: #f9fafb;
+            border-radius: 20px;
+            padding: 32px;
+            margin-top: 8px;
+            border: 1px solid #f3f4f6;
+        }
+        .service-name {
+            font-size: 20px;
+            font-weight: 800;
+            color: #111827;
+            margin: 0 0 8px 0;
+        }
+        .service-url {
+            font-size: 15px;
+            color: #6b7280;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .stats-table {
+            width: 100%;
+            margin-top: 32px;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 24px;
+            border-collapse: collapse;
+        }
+        .stats-table td {
+            padding: 10px 0;
+        }
+        .stat-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            text-align: left;
+        }
+        .stat-value {
+            font-size: 15px;
+            font-weight: 700;
+            color: #374151;
+            text-align: right;
+        }
+        .error-section {
+            margin-top: 36px;
+        }
+        .error-label {
+            font-size: 14px;
+            font-weight: 700;
+            color: #374151;
+            margin-bottom: 12px;
+            display: block;
+        }
+        .error-box {
+            background-color: #f8fafc;
+            border-radius: 16px;
+            padding: 20px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 13px;
+            color: #475569;
+            line-height: 1.6;
+            border: 1px solid #e2e8f0;
+        }
+        .action-area {
+            text-align: center;
+            margin-top: 48px;
+        }
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+            color: #ffffff !important;
+            padding: 18px 44px;
+            border-radius: 16px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 16px;
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+        }
+        .footer {
+            text-align: center;
+            padding-top: 32px;
+            font-size: 13px;
+            color: #9ca3af;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="main-card">
+            <div class="header">
+                <span class="brand">Sentinel Platform</span>
+                <h1 class="title">
+                    {% if alert.alert_type == 'latency_above' %}
+                        Rendimiento Degradado
+                    {% elif alert.alert_type == 'consecutive_failures' %}
+                        Interrupción Persistente
+                    {% else %}
+                        Incidencia de Conexión
+                    {% endif %}
+                </h1>
+                
+                <div class="status-badge {% if alert.alert_type == 'latency_above' %}status-latency{% else %}status-down{% endif %}">
+                    {% if alert.alert_type == 'latency_above' %}
+                         Latencia > {{ alert.condition_threshold|floatformat:0 }}ms
+                    {% elif alert.alert_type == 'consecutive_failures' %}
+                         Fallo persistente detectado
+                    {% else %}
+                         Error de Disponibilidad
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="content">
+                <div class="service-card">
+                    <h2 class="service-name">{{ alert.service_name }}</h2>
+                    <a href="{{ alert.service_url }}" class="service-url">{{ alert.service_url }}</a>
+                    
+                    <table class="stats-table">
+                        <tr>
+                            <td class="stat-label">Hora del evento</td>
+                            <td class="stat-value">{{ alert.checked_at|date:"H:i:s" }} UTC</td>
+                        </tr>
+                        <tr>
+                            <td class="stat-label">Tiempo de respuesta</td>
+                            <td class="stat-value">{{ alert.response_time_ms|default:"N/A" }} ms</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="error-section">
+                    <span class="error-label">Diagnóstico Técnico</span>
+                    <div class="error-box">
+                        {{ alert.error_message }}
+                    </div>
+                </div>
+
+                <div class="action-area">
+                    <a href="#" class="btn">Gestionar Incidencia</a>
+                </div>
+            </div>
+        </div>
+        <div class="footer">
+            © 2026 Sentinel Monitoring System. <br>
+            Aviso automático generado por reglas de negocio.
+        </div>
+    </div>
+</body>
+</html>
