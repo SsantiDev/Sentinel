@@ -4,9 +4,10 @@ import { motion } from 'framer-motion'
 
 export function SummaryCards({ services }) {
   const total = services.length
-  const up = services.filter(s => s.status === 'up').length
-  const down = services.filter(s => s.status === 'down').length
-  const uptimePercent = total > 0 ? ((up / total) * 100).toFixed(1) : '100'
+  const up = services.filter(s => s.is_active && s.status === 'up').length
+  const down = services.filter(s => s.is_active && s.status === 'down').length
+  const activeCount = services.filter(s => s.is_active).length
+  const uptimePercent = activeCount > 0 ? ((up / activeCount) * 100).toFixed(1) : '100'
 
   // Calculate average response time
   const avgLatency = useMemo(() => {
