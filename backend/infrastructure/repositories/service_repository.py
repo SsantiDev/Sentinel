@@ -1,7 +1,7 @@
 from typing import List, Optional
-from domain.entities.service import Service, CheckResult, ServiceStatus
+from domain.entities.service import Service, CheckResult, ServiceStatus, AlertRule
 from domain.interfaces.service_repository import IServiceRepository
-from infrastructure.models import ServiceModel, CheckResultModel
+from infrastructure.models import ServiceModel, CheckResultModel, AlertRuleModel
 
 
 class DjangoServiceRepository(IServiceRepository):
@@ -40,6 +40,23 @@ class DjangoServiceRepository(IServiceRepository):
             error_message=result.error_message,
         )
 
+    def get_alert_rules(self, service_id: int) -> List[AlertRule]:
+        return [
+            self._to_alert_rule_entity(m)
+            for m in AlertRuleModel.objects.filter(service_id=service_id, is_active=True)
+        ]
+
+    def get_consecutive_failures(self, service_id: int) -> int:
+        # Get last checks, stop counting at first 'up'
+        checks = CheckResultModel.objects.filter(service_id=service_id).order_by('-checked_at')[:20]
+        count = 0
+        for c in checks:
+            if c.status == ServiceStatus.DOWN.value:
+                count += 1
+            else:
+                break
+        return count
+
     def _to_entity(self, m: ServiceModel) -> Service:
         return Service(
             id=m.pk,
@@ -48,4 +65,15 @@ class DjangoServiceRepository(IServiceRepository):
             check_interval_seconds=m.check_interval_seconds,
             is_active=m.is_active,
             created_at=m.created_at,
+        )
+
+    def _to_alert_rule_entity(self, m: AlertRuleModel) -> AlertRule:
+        return AlertRule(
+            id=m.pk,
+            service_id=m.service_id,
+            condition=m.condition,
+            threshold=m.threshold,
+            channel=m.channel,
+            contact=m.contact,
+            is_active=m.is_active,
         )
