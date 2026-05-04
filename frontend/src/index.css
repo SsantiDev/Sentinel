@@ -14,9 +14,13 @@
   /* Light Mode (Default) */
   --bg-main: #f8fafc;
   --bg-card: #ffffff;
+  --card-rgb: 255, 255, 255;
   --border-subtle: #e2e8f0;
   --text-primary: #0f172a;
   --text-secondary: #475569;
+  
+  --skeleton-bg: #e2e8f0;
+  --skeleton-highlight: #cbd5e1;
   
   --accent: #2ecc71;
 }
@@ -25,9 +29,13 @@
   /* Dark Mode */
   --bg-main: #0f0f1a;
   --bg-card: #1a1a2e;
+  --card-rgb: 26, 26, 46;
   --border-subtle: #2a2a3e;
   --text-primary: #ffffff;
   --text-secondary: #9ca3af;
+  
+  --skeleton-bg: #1a1a2e;
+  --skeleton-highlight: #2a2a3e;
 }
 
 body {
