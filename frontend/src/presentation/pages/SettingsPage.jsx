@@ -1,48 +1,382 @@
-import { User, Database, Globe } from 'lucide-react'
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { 
+  User, Bell, Shield, Database, Save, Loader2, CheckCircle2, 
+  AlertCircle, ChevronRight, Mail, Clock, ShieldCheck, HardDrive,
+  Activity, Globe, Lock, Trash2
+} from 'lucide-react'
+import { useSettings } from '../../application/hooks/useSettings'
+import { cn } from '../../infrastructure/utils'
 
 export function SettingsPage() {
-  const sections = [
-    { icon: User, title: 'Perfil', desc: 'Configuración de cuenta y contraseña' },
-    { icon: Database, title: 'Base de Datos', desc: 'Ajustes de persistencia y backups' },
-    { icon: Globe, title: 'Sistema', desc: 'Intervalos globales y notificaciones' },
+  const { config, loading, error, updateConfig, updateProfile } = useSettings()
+  const [activeTab, setActiveTab] = useState('profile')
+  const [saveStatus, setSaveStatus] = useState({ show: false, success: true, message: '' })
+
+  const [profileForm, setProfileForm] = useState({ 
+    current: '', 
+    new: '', 
+    confirm: '',
+    session_timeout: config?.security?.session_timeout_minutes || 480 
+  })
+
+  const showStatus = (success, message) => {
+    setSaveStatus({ show: true, success, message })
+    setTimeout(() => setSaveStatus({ show: false, success: true, message: '' }), 3000)
+  }
+
+  const handleConfigUpdate = async (section, data) => {
+    const res = await updateConfig(section, data)
+    if (res.success) {
+      showStatus(true, 'Cambios guardados')
+    } else {
+      showStatus(false, res.error)
+    }
+  }
+
+  const handleSessionUpdate = async (e) => {
+    e.preventDefault()
+    const res = await updateProfile({
+      session_timeout_minutes: profileForm.session_timeout
+    })
+    if (res.success) {
+      showStatus(true, 'Sesión actualizada')
+    } else {
+      showStatus(false, res.error)
+    }
+  }
+
+  const handlePasswordUpdate = async (e) => {
+    e.preventDefault()
+    if (!profileForm.current || !profileForm.new) {
+      showStatus(false, 'Completa los campos de clave')
+      return
+    }
+    if (profileForm.new !== profileForm.confirm) {
+      showStatus(false, 'Las claves no coinciden')
+      return
+    }
+
+    const res = await updateProfile({
+      current_password: profileForm.current,
+      new_password: profileForm.new
+    })
+
+    if (res.success) {
+      showStatus(true, 'Contraseña actualizada')
+      setProfileForm({ ...profileForm, current: '', new: '', confirm: '' })
+    } else {
+      showStatus(false, res.error)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="h-[70vh] flex flex-col items-center justify-center gap-4">
+        <Loader2 className="animate-spin text-[#2ecc71]" size={48} />
+        <p className="text-text-secondary font-medium animate-pulse">Sincronizando configuración...</p>
+      </div>
+    )
+  }
+
+  const tabs = [
+    { id: 'profile', label: 'Perfil' },
+    { id: 'notifications', label: 'Alertas' },
+    { id: 'system', label: 'Motor' },
+    { id: 'security', label: 'Seguridad' },
   ]
 
-  return (
-    <div className="w-full">
-      <div className="mb-10">
-        <h2 className="text-text-primary text-3xl font-black tracking-tight mb-2">Ajustes</h2>
-        <p className="text-text-secondary text-sm">Configuración general de la plataforma</p>
-      </div>
+  const containerVariants = {
+    hidden: { opacity: 0, x: 20 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.3 } }
+  }
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {sections.map((sec) => (
-          <div key={sec.title} className="bg-bg-card border border-border-subtle p-8 rounded-3xl hover:border-[#2ecc71]/50 transition-all group">
-            <div className="bg-bg-main w-12 h-12 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-[#2ecc71]/20 transition-colors">
-              <sec.icon className="text-text-secondary group-hover:text-[#2ecc71] transition-colors" size={24} />
+  const renderProfile = () => (
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-12 gap-8 pb-10 h-full">
+      <div className="col-span-12 lg:col-span-7 flex flex-col gap-8">
+        <div className="bg-bg-card border border-border-subtle rounded-[3rem] p-12 shadow-sm">
+          <h3 className="text-text-primary font-black text-3xl mb-10 tracking-tight">Preferencias de Sesión</h3>
+          
+          <form onSubmit={handleSessionUpdate} className="space-y-8">
+            <div className="space-y-4">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#2ecc71] ml-1">Tiempo de Expiración (minutos)</label>
+              <div className="flex items-center gap-6">
+                <input
+                  type="number"
+                  value={profileForm.session_timeout}
+                  onChange={(e) => setProfileForm({...profileForm, session_timeout: parseInt(e.target.value)})}
+                  className="w-40 bg-bg-main/50 border border-border-subtle rounded-3xl px-8 py-5 text-4xl font-black focus:outline-none focus:border-[#2ecc71] transition-all"
+                />
+                <div className="flex-1">
+                  <p className="text-text-primary font-bold">Sesión Independiente</p>
+                  <p className="text-text-secondary text-xs">Ajusta cuánto tiempo permanecerá tu sesión activa.</p>
+                </div>
+              </div>
             </div>
-            <h3 className="text-text-primary font-bold text-lg mb-2">{sec.title}</h3>
-            <p className="text-text-secondary text-sm leading-relaxed mb-6">{sec.desc}</p>
-            <button className="text-[10px] font-black uppercase tracking-widest text-[#2ecc71] hover:underline">
-              Configurar →
+
+            <button
+              type="submit"
+              className="w-full bg-[#2ecc71] text-white h-16 rounded-3xl text-xs font-black uppercase tracking-[0.3em] hover:scale-[1.01] transition-all shadow-xl shadow-[#2ecc71]/20"
+            >
+              Guardar Tiempo de Sesión
             </button>
-          </div>
-        ))}
+          </form>
+        </div>
+
+        <div className="bg-bg-card border border-border-subtle rounded-[3rem] p-12 shadow-sm">
+          <h4 className="text-text-primary font-bold text-xl uppercase tracking-tighter mb-8">Seguridad de Cuenta</h4>
+          <form onSubmit={handlePasswordUpdate} className="space-y-6">
+            <input type="text" name="username" autoComplete="username" className="hidden" />
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary">Contraseña Actual</label>
+              <input
+                type="password"
+                autoComplete="current-password"
+                value={profileForm.current}
+                onChange={(e) => setProfileForm({...profileForm, current: e.target.value})}
+                className="w-full bg-bg-main/50 border border-border-subtle rounded-3xl px-8 py-5 text-base focus:outline-none focus:border-[#2ecc71] transition-all"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary">Nueva</label>
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  value={profileForm.new}
+                  onChange={(e) => setProfileForm({...profileForm, new: e.target.value})}
+                  className="w-full bg-bg-main/50 border border-border-subtle rounded-3xl px-8 py-4 text-base focus:outline-none focus:border-[#2ecc71] transition-all"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary">Confirmar</label>
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  value={profileForm.confirm}
+                  onChange={(e) => setProfileForm({...profileForm, confirm: e.target.value})}
+                  className="w-full bg-bg-main/50 border border-border-subtle rounded-3xl px-8 py-4 text-base focus:outline-none focus:border-[#2ecc71] transition-all"
+                />
+              </div>
+            </div>
+            <button
+              type="submit"
+              className="w-full bg-text-primary text-bg-card h-14 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] hover:opacity-90 transition-all"
+            >
+              Actualizar Clave
+            </button>
+          </form>
+        </div>
       </div>
 
-      <div className="mt-12 bg-bg-card border border-border-subtle rounded-3xl p-8">
-        <h3 className="text-text-primary font-bold mb-4">Información del Sistema</h3>
-        <div className="space-y-4">
-          <div className="flex justify-between border-b border-border-subtle pb-4">
-            <span className="text-text-secondary text-sm">Versión de Sentinel</span>
-            <span className="text-text-secondary font-mono text-xs">v1.0.4-beta</span>
+      <div className="col-span-12 lg:col-span-5 flex flex-col gap-8">
+        <div className="bg-[#2ecc71]/5 border border-[#2ecc71]/20 rounded-[3rem] p-12 flex flex-col justify-center h-full">
+          <h4 className="text-[#2ecc71] font-black text-xs uppercase tracking-[0.3em] mb-6">Hardening Activo</h4>
+          <div className="space-y-10">
+            <div>
+              <p className="text-text-primary text-4xl font-black tracking-tighter leading-none mb-4">{profileForm.session_timeout}m</p>
+              <p className="text-text-secondary text-sm">Tiempo de expiración configurado para tu usuario.</p>
+            </div>
+            <div className="pt-10 border-t border-[#2ecc71]/10">
+              <p className="text-text-secondary text-xs leading-relaxed italic">
+                "La seguridad es un proceso, no un producto. Tu sesión independiente garantiza que el acceso sea revocado automáticamente tras la inactividad."
+              </p>
+            </div>
           </div>
-          <div className="flex justify-between border-b border-border-subtle pb-4">
-            <span className="text-text-secondary text-sm">Estado del Backend</span>
-            <span className="text-green-500 font-mono text-xs uppercase font-bold tracking-tighter flex items-center gap-2">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.5)]"></span>
-              Operacional
-            </span>
-          </div>
+        </div>
+      </div>
+    </motion.div>
+  )
+
+  return (
+    <div className="flex flex-col h-full w-full">
+      <header className="mb-10 flex justify-end items-center">
+        <AnimatePresence>
+          {saveStatus.show && (
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              className={cn(
+                "flex items-center gap-3 px-8 py-4 rounded-3xl text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl backdrop-blur-xl",
+                saveStatus.success ? "bg-[#2ecc71]/10 text-[#2ecc71] border border-[#2ecc71]/20" : "bg-red-500/10 text-red-500 border border-red-500/20"
+              )}
+            >
+              {saveStatus.message}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </header>
+
+      <div className="flex flex-1 gap-10 min-h-0">
+        <nav className="w-64 shrink-0 space-y-3">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "w-full group flex flex-col p-8 rounded-[2rem] text-left transition-all duration-500 border",
+                activeTab === tab.id
+                  ? "bg-bg-card border-[#2ecc71] shadow-[0_20px_50px_rgba(46,204,113,0.12)]"
+                  : "bg-transparent border-transparent hover:bg-bg-card/40 hover:border-border-subtle"
+              )}
+            >
+              <span className={cn(
+                "text-xl font-black transition-colors uppercase tracking-tight",
+                activeTab === tab.id ? "text-text-primary" : "text-text-secondary/60 group-hover:text-text-primary"
+              )}>{tab.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        <div className="flex-1 min-w-0 h-full">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              className="h-full"
+            >
+              <div className="h-full overflow-y-auto pr-4 custom-scrollbar">
+                {activeTab === 'profile' && renderProfile()}
+
+                {activeTab === 'notifications' && (
+                  <div className="grid grid-cols-12 gap-8 pb-10">
+                    <div className="col-span-12 lg:col-span-7 bg-bg-card border border-border-subtle rounded-[3rem] p-12">
+                      <h3 className="text-text-primary font-black text-3xl mb-10 tracking-tight uppercase">Email de Destino</h3>
+                      <div className="space-y-6">
+                        <div className="flex items-center gap-6 p-8 bg-bg-main/30 rounded-[2rem] border border-border-subtle">
+                          <Mail className="text-[#2ecc71]" size={32} />
+                          <div className="flex-1">
+                            <input
+                              type="email"
+                              defaultValue={config.notifications.global_email}
+                              onBlur={(e) => handleConfigUpdate('notifications', { global_email: e.target.value })}
+                              className="w-full bg-transparent text-2xl font-black text-text-primary focus:outline-none"
+                              placeholder="admin@sentinel.cloud"
+                            />
+                            <p className="text-text-secondary text-[10px] font-black uppercase tracking-widest mt-2">Endpoint de recepción de alertas críticas</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className={cn(
+                      "col-span-12 lg:col-span-5 rounded-[3rem] p-12 flex flex-col justify-between transition-all duration-500",
+                      config.notifications.alert_on_failure ? "bg-[#2ecc71] text-white" : "bg-bg-card border border-border-subtle text-text-primary"
+                    )}>
+                      <div>
+                        <h4 className={cn("font-black text-[10px] uppercase tracking-[0.3em] mb-4", config.notifications.alert_on_failure ? "text-white/70" : "text-text-secondary")}>Estado del Canal</h4>
+                        <h3 className="text-4xl font-black tracking-tight mb-4">Alertas Push</h3>
+                        <p className={cn("text-sm leading-relaxed", config.notifications.alert_on_failure ? "text-white/80" : "text-text-secondary")}>
+                          Envío inmediato al detectar caídas de servicios mediante el Engine de Sentinel.
+                        </p>
+                      </div>
+                      <button 
+                        onClick={() => handleConfigUpdate('notifications', { alert_on_failure: !config.notifications.alert_on_failure })}
+                        className={cn(
+                          "w-full h-14 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] transition-all",
+                          config.notifications.alert_on_failure ? "bg-white text-[#2ecc71] shadow-2xl" : "bg-border-subtle text-text-secondary"
+                        )}
+                      >
+                        {config.notifications.alert_on_failure ? 'Desactivar Alertas' : 'Activar Alertas'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'system' && (
+                  <div className="grid grid-cols-12 gap-8 pb-10">
+                    <div className="col-span-12 md:col-span-6 lg:col-span-4 bg-bg-card border border-border-subtle rounded-[3rem] p-10">
+                      <h4 className="text-text-secondary font-black text-[10px] uppercase tracking-[0.3em] mb-6">Frecuencia de Polling</h4>
+                      <div className="flex items-baseline gap-4 mb-4">
+                        <input
+                          type="number"
+                          defaultValue={config.system.default_check_interval}
+                          onBlur={(e) => handleConfigUpdate('system', { default_check_interval: parseInt(e.target.value) })}
+                          className="bg-transparent text-6xl font-black text-[#2ecc71] w-32 focus:outline-none"
+                        />
+                        <span className="text-text-secondary font-bold text-xl uppercase">seg</span>
+                      </div>
+                      <p className="text-text-secondary text-xs leading-relaxed border-t border-border-subtle pt-6">Tiempo base entre escaneos de salud para todos los servicios monitorizados.</p>
+                    </div>
+
+                    <div className="col-span-12 md:col-span-6 lg:col-span-4 bg-bg-card border border-border-subtle rounded-[3rem] p-10">
+                      <h4 className="text-text-secondary font-black text-[10px] uppercase tracking-[0.3em] mb-6">Retención de Data</h4>
+                      <div className="flex items-baseline gap-4 mb-4">
+                        <input
+                          type="number"
+                          defaultValue={config.system.log_retention_days}
+                          onBlur={(e) => handleConfigUpdate('system', { log_retention_days: parseInt(e.target.value) })}
+                          className="bg-transparent text-6xl font-black text-[#2ecc71] w-32 focus:outline-none"
+                        />
+                        <span className="text-text-secondary font-bold text-xl uppercase">días</span>
+                      </div>
+                      <p className="text-text-secondary text-xs leading-relaxed border-t border-border-subtle pt-6">Días que los logs de ping se mantienen en la base de datos local antes de ser purgados.</p>
+                    </div>
+
+                    <div className={cn(
+                      "col-span-12 lg:col-span-4 rounded-[3rem] p-10 border transition-all duration-500",
+                      config.system.maintenance_mode ? "bg-red-500 text-white border-red-600" : "bg-bg-card border-border-subtle"
+                    )}>
+                      <h4 className={cn("font-black text-[10px] uppercase tracking-[0.3em] mb-6", config.system.maintenance_mode ? "text-white/80" : "text-text-secondary")}>Modo Mantenimiento</h4>
+                      <h3 className="text-3xl font-black mb-4 tracking-tighter">OFFLINE</h3>
+                      <p className={cn("text-xs leading-relaxed mb-8", config.system.maintenance_mode ? "text-white/70" : "text-text-secondary")}>Detiene todo el monitoreo y notificaciones de forma global.</p>
+                      <button 
+                        onClick={() => handleConfigUpdate('system', { maintenance_mode: !config.system.maintenance_mode })}
+                        className={cn(
+                          "w-full h-12 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] transition-all",
+                          config.system.maintenance_mode ? "bg-white text-red-500 shadow-2xl" : "bg-red-500/10 text-red-500 border border-red-500/20"
+                        )}
+                      >
+                        {config.system.maintenance_mode ? 'Desactivar Modo' : 'Activar Modo'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'security' && (
+                  <div className="grid grid-cols-12 gap-8 pb-10">
+                    <div className="col-span-12 lg:col-span-6 bg-bg-card border border-border-subtle rounded-[3rem] p-12">
+                      <div className="mb-10">
+                        <span className="bg-red-500/10 text-red-500 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">Política Global</span>
+                        <h3 className="text-text-primary font-black text-4xl mt-6 tracking-tighter uppercase">Hardening</h3>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary ml-1">Intentos fallidos máximos</label>
+                        <div className="flex items-center gap-4">
+                          <input
+                            type="number"
+                            defaultValue={config.security.max_login_attempts}
+                            onBlur={(e) => handleConfigUpdate('security', { max_login_attempts: parseInt(e.target.value) })}
+                            className="w-32 bg-bg-main/50 border border-border-subtle rounded-3xl px-8 py-5 text-4xl font-black text-red-500 focus:outline-none focus:border-red-500 transition-all"
+                          />
+                        </div>
+                        <p className="text-text-secondary text-xs">Bloqueo automático de IP tras superar este límite de intentos.</p>
+                      </div>
+                    </div>
+
+                    <div className="col-span-12 lg:col-span-6 bg-text-primary rounded-[3rem] p-12 text-bg-card flex flex-col justify-between">
+                      <div>
+                        <h4 className="text-bg-card/50 font-black text-[10px] uppercase tracking-[0.3em] mb-4">Políticas de Acceso</h4>
+                        <h3 className="text-3xl font-black tracking-tight mb-4">Brute Force Protection</h3>
+                        <p className="text-bg-card/70 text-sm leading-relaxed">
+                          El sistema bloquea IPs tras detectar actividad inusual. Este parámetro es gestionado a nivel de kernel para máxima seguridad.
+                        </p>
+                      </div>
+                      <div className="mt-8 flex items-center gap-3">
+                        <div className="h-2 w-2 bg-[#2ecc71] rounded-full animate-pulse" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-[#2ecc71]">Protección Activa</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
     </div>
