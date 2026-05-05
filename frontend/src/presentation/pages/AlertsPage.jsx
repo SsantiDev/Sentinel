@@ -131,11 +131,7 @@ export function AlertsPage() {
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between gap-6 mb-12">
-        <div>
-          <h2 className="text-text-primary text-4xl font-black tracking-tight mb-2">Alertas</h2>
-          <p className="text-text-secondary text-base">Gestiona tus reglas de notificación inteligente</p>
-        </div>
+      <div className="flex items-center justify-end gap-6 mb-12">
         <button
           onClick={() => setModalState({ isOpen: true, data: null })}
           className="flex items-center gap-2 bg-[#2ecc71] text-[#0f0f1a] font-black px-6 py-3 rounded-2xl text-sm hover:bg-[#27ae60] transition-all hover:scale-[1.05] active:scale-[0.95] shadow-lg shadow-[#2ecc71]/20"
