@@ -8,6 +8,7 @@ import { HistoryPage } from './presentation/pages/HistoryPage'
 import { SettingsPage } from './presentation/pages/SettingsPage'
 import { getToken } from './infrastructure/authStorage'
 import { Layout } from './presentation/components/Layout'
+import { SessionWatcher } from './presentation/components/SessionWatcher'
 
 function ProtectedRoute({ children }) {
   return getToken() ? <Layout>{children}</Layout> : <Navigate to="/login" replace />
@@ -16,6 +17,7 @@ function ProtectedRoute({ children }) {
 export default function App() {
   return (
     <ThemeProvider>
+      <SessionWatcher />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
