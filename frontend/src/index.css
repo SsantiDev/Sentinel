@@ -26,16 +26,16 @@
 }
 
 .dark {
-  /* Dark Mode */
-  --bg-main: #0f0f1a;
-  --bg-card: #1a1a2e;
-  --card-rgb: 26, 26, 46;
-  --border-subtle: #2a2a3e;
-  --text-primary: #ffffff;
-  --text-secondary: #9ca3af;
-  
-  --skeleton-bg: #1a1a2e;
-  --skeleton-highlight: #2a2a3e;
+  /* Dark Mode — Slate neutro */
+  --bg-main: #0f1117;
+  --bg-card: #1c1c24;
+  --card-rgb: 28, 28, 36;
+  --border-subtle: #2d2d3a;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+
+  --skeleton-bg: #1c1c24;
+  --skeleton-highlight: #2d2d3a;
 }
 
 body {
