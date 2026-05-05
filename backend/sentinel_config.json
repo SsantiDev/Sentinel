@@ -1,0 +1,21 @@
+{
+    "notifications": {
+        "global_email": "ssantiago.xz1130@gmail.com",
+        "alert_on_failure": true,
+        "consecutive_failures_threshold": 3
+    },
+    "system": {
+        "default_check_interval": 60,
+        "log_retention_days": 30,
+        "maintenance_mode": false
+    },
+    "security": {
+        "session_timeout_minutes": 480,
+        "max_login_attempts": 5
+    },
+    "user_preferences": {
+        "prueba": {
+            "session_timeout_minutes": 1
+        }
+    }
+}
