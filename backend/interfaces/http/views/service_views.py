@@ -26,13 +26,36 @@ class CheckResultViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         qs = CheckResultModel.objects.select_related('service').all()
+        
+        # Original filters
         service_id = self.request.query_params.get('service')
         status_filter = self.request.query_params.get('status')
+        
+        # New advanced filters
+        min_latency = self.request.query_params.get('min_latency')
+        max_latency = self.request.query_params.get('max_latency')
+        status_code = self.request.query_params.get('status_code')
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
+        ordering = self.request.query_params.get('ordering') or '-checked_at'
+
         if service_id:
             qs = qs.filter(service_id=service_id)
         if status_filter:
             qs = qs.filter(status=status_filter)
-        return qs[:200]
+        if min_latency:
+            qs = qs.filter(response_time_ms__gte=min_latency)
+        if max_latency:
+            qs = qs.filter(response_time_ms__lte=max_latency)
+        if status_code:
+            qs = qs.filter(status_code=status_code)
+        if start_date:
+            qs = qs.filter(checked_at__date__gte=start_date)
+        if end_date:
+            qs = qs.filter(checked_at__date__lte=end_date)
+            
+        # Prioritize ordering over any default
+        return qs.order_by(ordering or '-checked_at')[:200]
 
 
 class AlertRuleViewSet(viewsets.ModelViewSet):
