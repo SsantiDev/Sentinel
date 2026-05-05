@@ -30,11 +30,7 @@ export function DashboardPage() {
 
   return (
     <div className="w-full">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-        <div>
-          <h2 className="text-text-primary text-3xl font-black tracking-tight mb-1">Servicios</h2>
-          <p className="text-text-secondary text-xs font-medium">Monitoreo activo de infraestructura</p>
-        </div>
+      <div className="flex flex-col md:flex-row md:items-center justify-end gap-6 mb-10">
         
         <div className="flex items-center gap-3">
           <div className="relative group">
