@@ -9,7 +9,7 @@ class SentinelTokenObtainPairView(TokenObtainPairView):
     serializer_class = SentinelTokenObtainPairSerializer
 
 class GlobalConfigView(APIView):
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         config = ConfigManager.get_config()
