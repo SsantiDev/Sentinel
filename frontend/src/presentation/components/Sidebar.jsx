@@ -1,8 +1,9 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Activity, Bell, History, Settings, LogOut, Shield, Sun, Moon } from 'lucide-react'
+import { Activity, Bell, History, Settings, LogOut, Sun, Moon } from 'lucide-react'
 import { useAuth } from '../../application/hooks/useAuth'
 import { useTheme } from '../../application/context/ThemeContext'
 import { cn } from '../../infrastructure/utils'
+import logo from '../../assets/logo.png'
 
 export function Sidebar() {
   const { logout } = useAuth()
@@ -26,11 +27,14 @@ export function Sidebar() {
     <>
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex w-64 bg-bg-card border-r border-border-subtle flex-col h-screen sticky top-0 shrink-0 transition-colors duration-300">
-        <div className="p-6 flex items-center gap-3">
-          <div className="bg-[#2ecc71] p-2 rounded-lg">
-            <Shield className="text-[#0f0f1a]" size={24} />
-          </div>
-          <h1 className="text-text-primary font-bold text-xl tracking-tight">Sentinel</h1>
+        <div 
+          onClick={() => navigate('/dashboard')}
+          className="p-5 flex items-center justify-center gap-3 cursor-pointer hover:opacity-80 transition-all border-b border-border-subtle"
+        >
+          <img src={logo} alt="Sentinel" className="w-12 h-12 object-contain" />
+          <h1 className="text-text-primary font-bold text-xl tracking-wider uppercase">
+            Sentinel
+          </h1>
         </div>
 
         <nav className="flex-1 px-4 py-6 space-y-2">
