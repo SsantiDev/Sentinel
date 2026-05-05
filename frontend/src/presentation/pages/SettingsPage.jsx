@@ -7,9 +7,11 @@ import {
 } from 'lucide-react'
 import { useSettings } from '../../application/hooks/useSettings'
 import { cn } from '../../infrastructure/utils'
+import { isAdmin } from '../../infrastructure/authStorage'
 
 export function SettingsPage() {
   const { config, loading, error, updateConfig, updateProfile } = useSettings()
+  const isUserAdmin = isAdmin()
   const [activeTab, setActiveTab] = useState('profile')
   const [saveStatus, setSaveStatus] = useState({ show: false, success: true, message: '' })
 
@@ -79,11 +81,23 @@ export function SettingsPage() {
     )
   }
 
+  // Si hay error pero es admin, mostramos el error. Si no es admin y falla global, no importa.
+  if (isUserAdmin && (error || !config)) {
+    return (
+      <div className="h-[70vh] flex flex-col items-center justify-center gap-4">
+        <AlertCircle className="text-red-500" size={48} />
+        <p className="text-text-secondary font-medium">{error || 'No se pudo cargar la configuración'}</p>
+      </div>
+    )
+  }
+
   const tabs = [
     { id: 'profile', label: 'Perfil' },
-    { id: 'notifications', label: 'Alertas' },
-    { id: 'system', label: 'Motor' },
-    { id: 'security', label: 'Seguridad' },
+    ...(isUserAdmin ? [
+      { id: 'notifications', label: 'Alertas' },
+      { id: 'system', label: 'Motor' },
+      { id: 'security', label: 'Seguridad' },
+    ] : [])
   ]
 
   const containerVariants = {
