@@ -4,6 +4,7 @@ import { useAuth } from '../../application/hooks/useAuth'
 import { useTheme } from '../../application/context/ThemeContext'
 import { GalaxyBackground } from '../components/GalaxyBackground'
 import logo from '../../assets/logo.png'
+import { useEffect } from 'react'
 
 export function LoginPage() {
   const [username, setUsername] = useState('')
@@ -13,6 +14,13 @@ export function LoginPage() {
   const { login } = useAuth()
   const { isDark, toggleTheme } = useTheme()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('reason') === 'session_expired') {
+      setError('Tu sesión ha expirado por inactividad')
+    }
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
