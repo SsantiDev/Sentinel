@@ -1,18 +1,28 @@
 import { useState, useEffect } from 'react'
 import apiClient from '../../infrastructure/apiClient'
+import { isAdmin } from '../../infrastructure/authStorage'
 
 export function useSettings() {
-  const [config, setConfig] = useState(null)
+  const [config, setConfig] = useState({
+    notifications: { global_email: '', alert_on_failure: false },
+    system: { default_check_interval: 60, log_retention_days: 30, maintenance_mode: false },
+    security: { session_timeout_minutes: 480, max_login_attempts: 5 }
+  })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
   const fetchConfig = async () => {
+    if (!isAdmin()) {
+      setLoading(false)
+      return
+    }
+
     try {
       setLoading(true)
       const { data } = await apiClient.get('/settings/global/')
       setConfig(data)
     } catch (err) {
-      setError('Error al cargar la configuración')
+      setError('Error al cargar la configuración global')
     } finally {
       setLoading(false)
     }
