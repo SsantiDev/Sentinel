@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../application/hooks/useAuth'
 import { useTheme } from '../../application/context/ThemeContext'
 import { GalaxyBackground } from '../components/GalaxyBackground'
 import logo from '../../assets/logo.png'
-import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export function LoginPage() {
   const [username, setUsername] = useState('')
@@ -14,11 +14,12 @@ export function LoginPage() {
   const { login } = useAuth()
   const { isDark, toggleTheme } = useTheme()
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('reason') === 'session_expired') {
-      setError('Tu sesión ha expirado por inactividad')
+      setError(t('login.sessionExpired'))
     }
   }, [])
 
@@ -30,7 +31,7 @@ export function LoginPage() {
       await login(username, password)
       navigate('/dashboard')
     } catch {
-      setError('Credenciales inválidas')
+      setError(t('login.invalidCredentials'))
     } finally {
       setLoading(false)
     }
@@ -62,15 +63,15 @@ export function LoginPage() {
             <img src={logo} alt="Sentinel Logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-text-primary text-3xl sm:text-4xl font-black tracking-tight">SENTINEL</h1>
-          <p className="text-text-secondary mt-1 sm:mt-2 font-medium text-sm sm:text-base">Enterprise Service Monitoring</p>
+          <p className="text-text-secondary mt-1 sm:mt-2 font-medium text-sm sm:text-base">{t('login.subtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <label className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Username</label>
+            <label className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">{t('login.username')}</label>
             <input
               className="w-full bg-slate-50/50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 sm:px-5 py-3 sm:py-4 text-text-primary placeholder-slate-400 dark:placeholder-gray-600 focus:outline-none focus:border-[#2ecc71] focus:ring-1 focus:ring-[#2ecc71] transition-all text-sm sm:text-base"
-              placeholder="Enter your username"
+              placeholder={t('login.usernamePlaceholder')}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               autoFocus
@@ -78,7 +79,7 @@ export function LoginPage() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Password</label>
+            <label className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">{t('login.password')}</label>
             <input
               type="password"
               autoComplete="current-password"
@@ -101,7 +102,7 @@ export function LoginPage() {
             disabled={loading}
             className="w-full bg-[#2ecc71] text-[#0f0f1a] font-black py-3 sm:py-4 rounded-xl hover:bg-[#27ae60] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_4px_15px_rgba(46,204,113,0.3)] disabled:opacity-50 disabled:hover:scale-100 text-sm sm:text-base"
           >
-            {loading ? 'AUTHENTICATING...' : 'ACCESS DASHBOARD'}
+            {loading ? t('login.authenticating') : t('login.access')}
           </button>
         </form>
       </div>
