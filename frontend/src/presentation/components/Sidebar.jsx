@@ -1,22 +1,30 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Activity, Bell, History, Settings, LogOut, Sun, Moon } from 'lucide-react'
+import { Activity, Bell, History, Settings, LogOut, Sun, Moon, Languages } from 'lucide-react'
 import { useAuth } from '../../application/hooks/useAuth'
 import { useTheme } from '../../application/context/ThemeContext'
 import { cn } from '../../infrastructure/utils'
 import logo from '../../assets/logo.png'
+import { useTranslation } from 'react-i18next'
 
 export function Sidebar() {
   const { logout } = useAuth()
   const { isDark, toggleTheme } = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
+  const { t, i18n } = useTranslation()
 
   const menuItems = [
-    { icon: Activity, label: 'Dashboard', path: '/dashboard' },
-    { icon: Bell, label: 'Alertas', path: '/alerts' },
-    { icon: History, label: 'Historial', path: '/history' },
-    { icon: Settings, label: 'Ajustes', path: '/settings' },
+    { icon: Activity, label: t('nav.dashboard'), path: '/dashboard' },
+    { icon: Bell, label: t('nav.alerts'), path: '/alerts' },
+    { icon: History, label: t('nav.history'), path: '/history' },
+    { icon: Settings, label: t('nav.settings'), path: '/settings' },
   ]
+
+  const toggleLang = () => {
+    const next = i18n.language === 'es' ? 'en' : 'es'
+    i18n.changeLanguage(next)
+    localStorage.setItem('sentinel_lang', next)
+  }
 
   const handleLogout = () => {
     logout()
@@ -61,14 +69,21 @@ export function Sidebar() {
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-border-subtle/50 transition-all duration-200"
           >
             {isDark ? <Sun size={18} /> : <Moon size={18} />}
-            {isDark ? 'Modo Claro' : 'Modo Oscuro'}
+            {isDark ? t('nav.lightMode') : t('nav.darkMode')}
+          </button>
+          <button
+            onClick={toggleLang}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-border-subtle/50 transition-all duration-200"
+          >
+            <Languages size={18} />
+            {i18n.language === 'es' ? 'EN' : 'ES'}
           </button>
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-text-secondary hover:text-red-400 hover:bg-red-400/5 transition-all duration-200"
           >
             <LogOut size={18} />
-            Cerrar Sesión
+            {t('nav.logout')}
           </button>
         </div>
       </aside>
@@ -93,7 +108,7 @@ export function Sidebar() {
           className="flex flex-col items-center gap-1 p-2 text-text-secondary"
         >
           {isDark ? <Sun size={20} /> : <Moon size={20} />}
-          <span className="text-[10px] font-medium">Tema</span>
+          <span className="text-[10px] font-medium">{t('nav.theme')}</span>
         </button>
       </nav>
     </>
