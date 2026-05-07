@@ -3,13 +3,14 @@ import { ShieldAlert, Plus, Trash2, ToggleLeft, ToggleRight, Edit2 } from 'lucid
 import { useAlerts } from '../../application/hooks/useAlerts'
 import { useServices } from '../../application/hooks/useServices'
 import { ConfirmModal } from '../components/ConfirmModal'
-
-const CONDITION_LABELS = {
-  consecutive_failures: 'Fallos consecutivos',
-  latency_above: 'Latencia mayor a (ms)',
-}
+import { useTranslation } from 'react-i18next'
 
 function RuleModal({ services, onClose, onSave, initialData = null }) {
+  const { t } = useTranslation()
+  const CONDITION_LABELS = {
+    consecutive_failures: t('alerts.conditions.consecutive_failures'),
+    latency_above: t('alerts.conditions.latency_above'),
+  }
   const [form, setForm] = useState(initialData ?? {
     service: services[0]?.id ?? '',
     condition: 'consecutive_failures',
@@ -37,12 +38,12 @@ function RuleModal({ services, onClose, onSave, initialData = null }) {
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
       <div className="bg-bg-card border border-border-subtle rounded-3xl p-8 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
         <h3 className="text-text-primary font-black text-2xl mb-6 tracking-tight">
-          {isEdit ? 'Editar regla' : 'Nueva regla de alerta'}
+          {isEdit ? t('alerts.editRule') : t('alerts.newAlertRule')}
         </h3>
         <form onSubmit={handleSubmit} className="space-y-5">
           {!isEdit && (
             <div>
-              <label className="text-text-secondary text-xs font-bold uppercase tracking-wider mb-2 block">Servicio</label>
+              <label className="text-text-secondary text-xs font-bold uppercase tracking-wider mb-2 block">{t('alerts.service')}</label>
               <select
                 value={form.service}
                 onChange={e => set('service', e.target.value)}
@@ -55,7 +56,7 @@ function RuleModal({ services, onClose, onSave, initialData = null }) {
           )}
 
           <div>
-            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider mb-2 block">Condición</label>
+            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider mb-2 block">{t('alerts.condition')}</label>
             <select
               value={form.condition}
               onChange={e => set('condition', e.target.value)}
@@ -69,7 +70,7 @@ function RuleModal({ services, onClose, onSave, initialData = null }) {
 
           <div>
             <label className="text-text-secondary text-xs font-bold uppercase tracking-wider mb-2 block">
-              {form.condition === 'consecutive_failures' ? 'Número de fallos' : 'Umbral en ms'}
+              {form.condition === 'consecutive_failures' ? t('alerts.failures') : t('alerts.thresholdMs')}
             </label>
             <input
               type="number"
@@ -82,7 +83,7 @@ function RuleModal({ services, onClose, onSave, initialData = null }) {
           </div>
 
           <div>
-            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider mb-2 block">Email de contacto</label>
+            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider mb-2 block">{t('alerts.contactEmail')}</label>
             <input
               type="email"
               value={form.contact}
