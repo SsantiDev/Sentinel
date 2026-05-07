@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { X, Server, Globe, Clock, Shield } from 'lucide-react'
 import apiClient from '../../infrastructure/apiClient'
 import { cn } from '../../infrastructure/utils'
+import { useTranslation } from 'react-i18next'
 
 export function CreateServiceModal({ onClose, onSuccess }) {
+  const { t } = useTranslation()
   const [form, setForm] = useState({ name: '', url: '', check_interval_seconds: 60, is_active: true })
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -17,7 +19,7 @@ export function CreateServiceModal({ onClose, onSuccess }) {
       onSuccess()
       onClose()
     } catch {
-      setError('Error al crear el servicio')
+      setError(t('service.createError'))
     } finally {
       setLoading(false)
     }
@@ -33,8 +35,8 @@ export function CreateServiceModal({ onClose, onSuccess }) {
         
         <div className="flex justify-between items-center mb-8 relative z-10">
           <div>
-            <h2 className="text-text-primary text-2xl font-black tracking-tight">Nuevo Servicio</h2>
-            <p className="text-text-secondary text-xs font-medium">Configura un nuevo endpoint para monitoreo</p>
+            <h2 className="text-text-primary text-2xl font-black tracking-tight">{t('service.newService')}</h2>
+            <p className="text-text-secondary text-xs font-medium">{t('service.newServiceDesc')}</p>
           </div>
           <button 
             onClick={onClose} 
@@ -49,7 +51,7 @@ export function CreateServiceModal({ onClose, onSuccess }) {
             <Server className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary" size={16} />
             <input 
               className={inputClass} 
-              placeholder="Nombre del servicio (ej: API Principal)" 
+              placeholder={t('service.namePlaceholder')}
               value={form.name} 
               onChange={e => setForm({...form, name: e.target.value})} 
               required 
@@ -60,7 +62,7 @@ export function CreateServiceModal({ onClose, onSuccess }) {
             <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary" size={16} />
             <input 
               className={inputClass} 
-              placeholder="URL (https://example.com/api)" 
+              placeholder={t('service.urlPlaceholder')}
               value={form.url} 
               onChange={e => setForm({...form, url: e.target.value})} 
               required 
@@ -72,7 +74,7 @@ export function CreateServiceModal({ onClose, onSuccess }) {
             <input 
               type="number" 
               className={inputClass} 
-              placeholder="Intervalo en segundos (min 10s)" 
+              placeholder={t('service.intervalPlaceholder')}
               value={form.check_interval_seconds} 
               onChange={e => setForm({...form, check_interval_seconds: parseInt(e.target.value)})} 
               min={10} 
@@ -93,7 +95,7 @@ export function CreateServiceModal({ onClose, onSuccess }) {
               />
               {form.is_active && <div className="w-2 h-2 bg-[#0f0f1a] rounded-full" />}
             </div>
-            <span className="text-sm font-bold group-hover:text-text-primary transition-colors">Activar monitoreo</span>
+            <span className="text-sm font-bold group-hover:text-text-primary transition-colors">{t('service.activateMonitoring')}</span>
           </label>
 
           {error && (
@@ -108,7 +110,7 @@ export function CreateServiceModal({ onClose, onSuccess }) {
             disabled={loading} 
             className="w-full bg-[#2ecc71] text-[#0f0f1a] font-black py-4 rounded-2xl hover:bg-[#27ae60] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 shadow-lg shadow-green-500/10 mt-2"
           >
-            {loading ? 'Procesando...' : 'Guardar Servicio'}
+            {loading ? t('service.processing') : t('service.save')}
           </button>
         </form>
       </div>
