@@ -6,8 +6,10 @@ import { ServiceCard } from '../components/ServiceCard'
 import { CreateServiceModal } from '../components/CreateServiceModal'
 import { SummaryCards } from '../components/SummaryCards'
 import { SkeletonCard, SkeletonSummary } from '../components/SkeletonCard'
+import { useTranslation } from 'react-i18next'
 
 export function DashboardPage() {
+  const { t } = useTranslation()
   const { services, loading, error, refetch, silentRefetch, toggleService } = useServices()
   const [showModal, setShowModal] = useState(false)
   const [search, setSearch] = useState('')
@@ -37,7 +39,7 @@ export function DashboardPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-[#2ecc71] transition-colors" size={18} />
             <input
               type="text"
-              placeholder="Filtrar servicios..."
+              placeholder={t('dashboard.filterPlaceholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="bg-bg-card border border-border-subtle text-text-primary pl-10 pr-4 py-2.5 rounded-xl w-full md:w-64 focus:outline-none focus:border-[#2ecc71] transition-all shadow-sm"
@@ -48,7 +50,7 @@ export function DashboardPage() {
             className="flex items-center gap-2 bg-[#2ecc71] text-[#0f0f1a] font-bold px-5 py-2.5 rounded-xl hover:bg-[#27ae60] hover:scale-105 active:scale-95 transition-all shadow-lg shadow-green-500/10 whitespace-nowrap"
           >
             <Plus size={20} />
-            Nuevo
+            {t('dashboard.new')}
           </button>
         </div>
       </div>
@@ -79,8 +81,8 @@ export function DashboardPage() {
         ) : (
           <div className="col-span-full py-20 flex flex-col items-center justify-center bg-bg-card/50 rounded-[40px] border-2 border-dashed border-border-subtle">
             <Layers size={48} className="text-text-secondary mb-4 opacity-20" />
-            <p className="text-text-secondary font-bold text-lg">No se encontraron servicios</p>
-            <p className="text-text-secondary text-sm mt-1 opacity-60">Intenta con otra búsqueda o crea uno nuevo</p>
+            <p className="text-text-secondary font-bold text-lg">{t('dashboard.noServices')}</p>
+            <p className="text-text-secondary text-sm mt-1 opacity-60">{t('dashboard.noServicesHint')}</p>
           </div>
         )}
       </div>
