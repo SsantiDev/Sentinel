@@ -2,6 +2,7 @@ import { Search, CheckCircle2, XCircle, HelpCircle, Filter } from 'lucide-react'
 import { useState } from 'react'
 import { useHistory } from '../../application/hooks/useHistory'
 import { useServices } from '../../application/hooks/useServices'
+import { useTranslation } from 'react-i18next'
 
 function StatusIcon({ status }) {
   if (status === 'up') return <CheckCircle2 size={16} className="text-[#2ecc71]" />
@@ -17,6 +18,7 @@ function formatDate(iso) {
 }
 
 export function HistoryPage() {
+  const { t } = useTranslation()
   const { checks, loading, filters, setFilters } = useHistory()
   const { services } = useServices()
 
@@ -72,8 +74,8 @@ export function HistoryPage() {
   }
 
   const getLatencyLabel = () => {
-    if (filters.ordering === '-response_time_ms') return ' (Mayor)'
-    if (filters.ordering === 'response_time_ms') return ' (Menor)'
+    if (filters.ordering === '-response_time_ms') return ` ${t('history.latencyHigh')}`
+    if (filters.ordering === 'response_time_ms') return ` ${t('history.latencyLow')}`
     return ''
   }
 
@@ -81,10 +83,10 @@ export function HistoryPage() {
     const today = new Date().toISOString().split('T')[0]
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
     
-    if (filters.start_date === today) return ' (Hoy)'
-    if (filters.start_date === yesterday && filters.end_date === yesterday) return ' (Ayer)'
+    if (filters.start_date === today) return ` ${t('history.today')}`
+    if (filters.start_date === yesterday && filters.end_date === yesterday) return ` ${t('history.yesterday')}`
     if (filters.start_date && !filters.end_date) return ` (> ${filters.start_date})`
-    if (filters.start_date && filters.end_date) return ' (Últ. 7d)'
+    if (filters.start_date && filters.end_date) return ` ${t('history.last7d')}`
     return ''
   }
 
@@ -99,7 +101,7 @@ export function HistoryPage() {
             onChange={e => setFilters(f => ({ ...f, service: e.target.value }))}
             className="bg-bg-card border border-border-subtle text-text-primary pl-9 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:border-[#2ecc71] appearance-none min-w-[200px]"
           >
-            <option value="">Todos los servicios</option>
+            <option value="">{t('history.allServices')}</option>
             {services.map(s => (
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
@@ -116,17 +118,17 @@ export function HistoryPage() {
                 onClick={toggleStatus}
               >
                 <div className="flex items-center gap-2">
-                  Estado <Filter size={12} className={filters.status ? 'text-[#2ecc71]' : 'opacity-30'} />
+                  {t('history.status')} <Filter size={12} className={filters.status ? 'text-[#2ecc71]' : 'opacity-30'} />
                   <span className="text-[10px] font-bold text-[#2ecc71]">{getStatusLabel()}</span>
                 </div>
               </th>
-              <th className="text-left px-5 py-4 font-medium">Servicio</th>
+              <th className="text-left px-5 py-4 font-medium">{t('history.service')}</th>
               <th 
                 className="text-left px-5 py-4 font-medium hidden md:table-cell cursor-pointer hover:text-[#2ecc71] transition-colors"
                 onClick={toggleLatency}
               >
                 <div className="flex items-center gap-2">
-                  Latencia <Filter size={12} className={filters.ordering.includes('response_time') ? 'text-[#2ecc71]' : 'opacity-30'} />
+                  {t('history.latency')} <Filter size={12} className={filters.ordering.includes('response_time') ? 'text-[#2ecc71]' : 'opacity-30'} />
                   <span className="text-[10px] font-bold text-[#2ecc71]">{getLatencyLabel()}</span>
                 </div>
               </th>
@@ -135,7 +137,7 @@ export function HistoryPage() {
                 onClick={toggleHttp}
               >
                 <div className="flex items-center gap-2">
-                  HTTP <Filter size={12} className={filters.status_code ? 'text-[#2ecc71]' : 'opacity-30'} />
+                  {t('history.http')} <Filter size={12} className={filters.status_code ? 'text-[#2ecc71]' : 'opacity-30'} />
                   <span className="text-[10px] font-bold text-[#2ecc71]">{filters.status_code ? ' (ERR)' : ''}</span>
                 </div>
               </th>
@@ -144,7 +146,7 @@ export function HistoryPage() {
                 onClick={toggleDate}
               >
                 <div className="flex items-center gap-2">
-                  Fecha <Filter size={12} className={filters.start_date ? 'text-[#2ecc71]' : 'opacity-30'} />
+                  {t('history.date')} <Filter size={12} className={filters.start_date ? 'text-[#2ecc71]' : 'opacity-30'} />
                   <span className="text-[10px] font-bold text-[#2ecc71]">{getDateLabel()}</span>
                 </div>
               </th>
@@ -164,7 +166,7 @@ export function HistoryPage() {
             ) : checks.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-5 py-12 text-center text-text-secondary">
-                  Sin registros
+                  {t('history.noRecords')}
                 </td>
               </tr>
             ) : checks.map(c => (
