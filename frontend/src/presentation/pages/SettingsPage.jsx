@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { 
   User, Bell, Shield, Database, Save, Loader2, CheckCircle2, 
   AlertCircle, ChevronRight, Mail, Clock, ShieldCheck, HardDrive,
@@ -11,6 +12,7 @@ import { isAdmin } from '../../infrastructure/authStorage'
 
 export function SettingsPage() {
   const { config, loading, error, updateConfig, updateProfile } = useSettings()
+  const { t } = useTranslation()
   const isUserAdmin = isAdmin()
   const [activeTab, setActiveTab] = useState('profile')
   const [saveStatus, setSaveStatus] = useState({ show: false, success: true, message: '' })
@@ -30,7 +32,7 @@ export function SettingsPage() {
   const handleConfigUpdate = async (section, data) => {
     const res = await updateConfig(section, data)
     if (res.success) {
-      showStatus(true, 'Cambios guardados')
+      showStatus(true, t('settings.saved'))
     } else {
       showStatus(false, res.error)
     }
@@ -42,7 +44,7 @@ export function SettingsPage() {
       session_timeout_minutes: profileForm.session_timeout
     })
     if (res.success) {
-      showStatus(true, 'Sesión actualizada')
+      showStatus(true, t('settings.sessionUpdated'))
     } else {
       showStatus(false, res.error)
     }
@@ -51,11 +53,11 @@ export function SettingsPage() {
   const handlePasswordUpdate = async (e) => {
     e.preventDefault()
     if (!profileForm.current || !profileForm.new) {
-      showStatus(false, 'Completa los campos de clave')
+      showStatus(false, t('settings.fillPasswordFields'))
       return
     }
     if (profileForm.new !== profileForm.confirm) {
-      showStatus(false, 'Las claves no coinciden')
+      showStatus(false, t('settings.passwordMismatch'))
       return
     }
 
@@ -65,7 +67,7 @@ export function SettingsPage() {
     })
 
     if (res.success) {
-      showStatus(true, 'Contraseña actualizada')
+      showStatus(true, t('settings.passwordUpdated'))
       setProfileForm({ ...profileForm, current: '', new: '', confirm: '' })
     } else {
       showStatus(false, res.error)
@@ -76,7 +78,7 @@ export function SettingsPage() {
     return (
       <div className="h-[70vh] flex flex-col items-center justify-center gap-4">
         <Loader2 className="animate-spin text-[#2ecc71]" size={48} />
-        <p className="text-text-secondary font-medium animate-pulse">Sincronizando configuración...</p>
+        <p className="text-text-secondary font-medium animate-pulse">{t('settings.syncing')}</p>
       </div>
     )
   }
@@ -86,17 +88,17 @@ export function SettingsPage() {
     return (
       <div className="h-[70vh] flex flex-col items-center justify-center gap-4">
         <AlertCircle className="text-red-500" size={48} />
-        <p className="text-text-secondary font-medium">{error || 'No se pudo cargar la configuración'}</p>
+        <p className="text-text-secondary font-medium">{error || t('settings.loadError')}</p>
       </div>
     )
   }
 
   const tabs = [
-    { id: 'profile', label: 'Perfil' },
+    { id: 'profile', label: t('settings.profile') },
     ...(isUserAdmin ? [
-      { id: 'notifications', label: 'Alertas' },
-      { id: 'system', label: 'Motor' },
-      { id: 'security', label: 'Seguridad' },
+      { id: 'notifications', label: t('settings.notifications') },
+      { id: 'system', label: t('settings.system') },
+      { id: 'security', label: t('settings.security') },
     ] : [])
   ]
 
@@ -109,11 +111,11 @@ export function SettingsPage() {
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-12 gap-8 pb-10 h-full">
       <div className="col-span-12 lg:col-span-7 flex flex-col gap-8">
         <div className="bg-bg-card border border-border-subtle rounded-[3rem] p-12 shadow-sm">
-          <h3 className="text-text-primary font-black text-3xl mb-10 tracking-tight">Preferencias de Sesión</h3>
+          <h3 className="text-text-primary font-black text-3xl mb-10 tracking-tight">{t('settings.sessionPrefs')}</h3>
           
           <form onSubmit={handleSessionUpdate} className="space-y-8">
             <div className="space-y-4">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#2ecc71] ml-1">Tiempo de Expiración (minutos)</label>
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#2ecc71] ml-1">{t('settings.sessionTimeout')}</label>
               <div className="flex items-center gap-6">
                 <input
                   type="number"
@@ -122,8 +124,8 @@ export function SettingsPage() {
                   className="w-40 bg-bg-main/50 border border-border-subtle rounded-3xl px-8 py-5 text-4xl font-black focus:outline-none focus:border-[#2ecc71] transition-all"
                 />
                 <div className="flex-1">
-                  <p className="text-text-primary font-bold">Sesión Independiente</p>
-                  <p className="text-text-secondary text-xs">Ajusta cuánto tiempo permanecerá tu sesión activa.</p>
+                  <p className="text-text-primary font-bold">{t('settings.sessionIndependent')}</p>
+                  <p className="text-text-secondary text-xs">{t('settings.sessionDesc')}</p>
                 </div>
               </div>
             </div>
@@ -132,17 +134,17 @@ export function SettingsPage() {
               type="submit"
               className="w-full bg-[#2ecc71] text-white h-16 rounded-3xl text-xs font-black uppercase tracking-[0.3em] hover:scale-[1.01] transition-all shadow-xl shadow-[#2ecc71]/20"
             >
-              Guardar Tiempo de Sesión
+              {t('settings.saveSession')}
             </button>
           </form>
         </div>
 
         <div className="bg-bg-card border border-border-subtle rounded-[3rem] p-12 shadow-sm">
-          <h4 className="text-text-primary font-bold text-xl uppercase tracking-tighter mb-8">Seguridad de Cuenta</h4>
+          <h4 className="text-text-primary font-bold text-xl uppercase tracking-tighter mb-8">{t('settings.accountSecurity')}</h4>
           <form onSubmit={handlePasswordUpdate} className="space-y-6">
             <input type="text" name="username" autoComplete="username" className="hidden" />
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary">Contraseña Actual</label>
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary">{t('settings.currentPassword')}</label>
               <input
                 type="password"
                 autoComplete="current-password"
@@ -153,7 +155,7 @@ export function SettingsPage() {
             </div>
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary">Nueva</label>
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary">{t('settings.newPassword')}</label>
                 <input
                   type="password"
                   autoComplete="new-password"
@@ -163,7 +165,7 @@ export function SettingsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary">Confirmar</label>
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary">{t('settings.confirmPassword')}</label>
                 <input
                   type="password"
                   autoComplete="new-password"
@@ -177,7 +179,7 @@ export function SettingsPage() {
               type="submit"
               className="w-full bg-text-primary text-bg-card h-14 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] hover:opacity-90 transition-all"
             >
-              Actualizar Clave
+              {t('settings.updatePassword')}
             </button>
           </form>
         </div>
@@ -185,15 +187,15 @@ export function SettingsPage() {
 
       <div className="col-span-12 lg:col-span-5 flex flex-col gap-8">
         <div className="bg-[#2ecc71]/5 border border-[#2ecc71]/20 rounded-[3rem] p-12 flex flex-col justify-center h-full">
-          <h4 className="text-[#2ecc71] font-black text-xs uppercase tracking-[0.3em] mb-6">Hardening Activo</h4>
+          <h4 className="text-[#2ecc71] font-black text-xs uppercase tracking-[0.3em] mb-6">{t('settings.hardeningActive')}</h4>
           <div className="space-y-10">
             <div>
               <p className="text-text-primary text-4xl font-black tracking-tighter leading-none mb-4">{profileForm.session_timeout}m</p>
-              <p className="text-text-secondary text-sm">Tiempo de expiración configurado para tu usuario.</p>
+              <p className="text-text-secondary text-sm">{t('settings.sessionExpiry')}</p>
             </div>
             <div className="pt-10 border-t border-[#2ecc71]/10">
               <p className="text-text-secondary text-xs leading-relaxed italic">
-                "La seguridad es un proceso, no un producto. Tu sesión independiente garantiza que el acceso sea revocado automáticamente tras la inactividad."
+                {t('settings.securityQuote')}
               </p>
             </div>
           </div>
@@ -259,7 +261,7 @@ export function SettingsPage() {
                 {activeTab === 'notifications' && (
                   <div className="grid grid-cols-12 gap-8 pb-10">
                     <div className="col-span-12 lg:col-span-7 bg-bg-card border border-border-subtle rounded-[3rem] p-12">
-                      <h3 className="text-text-primary font-black text-3xl mb-10 tracking-tight uppercase">Email de Destino</h3>
+                      <h3 className="text-text-primary font-black text-3xl mb-10 tracking-tight uppercase">{t('settings.emailDestination')}</h3>
                       <div className="space-y-6">
                         <div className="flex items-center gap-6 p-8 bg-bg-main/30 rounded-[2rem] border border-border-subtle">
                           <Mail className="text-[#2ecc71]" size={32} />
@@ -271,7 +273,7 @@ export function SettingsPage() {
                               className="w-full bg-transparent text-2xl font-black text-text-primary focus:outline-none"
                               placeholder="admin@sentinel.cloud"
                             />
-                            <p className="text-text-secondary text-[10px] font-black uppercase tracking-widest mt-2">Endpoint de recepción de alertas críticas</p>
+                            <p className="text-text-secondary text-[10px] font-black uppercase tracking-widest mt-2">{t('settings.alertEndpoint')}</p>
                           </div>
                         </div>
                       </div>
@@ -282,10 +284,10 @@ export function SettingsPage() {
                       config.notifications.alert_on_failure ? "bg-[#2ecc71] text-white" : "bg-bg-card border border-border-subtle text-text-primary"
                     )}>
                       <div>
-                        <h4 className={cn("font-black text-[10px] uppercase tracking-[0.3em] mb-4", config.notifications.alert_on_failure ? "text-white/70" : "text-text-secondary")}>Estado del Canal</h4>
-                        <h3 className="text-4xl font-black tracking-tight mb-4">Alertas Push</h3>
+                        <h4 className={cn("font-black text-[10px] uppercase tracking-[0.3em] mb-4", config.notifications.alert_on_failure ? "text-white/70" : "text-text-secondary")}>{t('settings.channelStatus')}</h4>
+                        <h3 className="text-4xl font-black tracking-tight mb-4">{t('settings.pushAlerts')}</h3>
                         <p className={cn("text-sm leading-relaxed", config.notifications.alert_on_failure ? "text-white/80" : "text-text-secondary")}>
-                          Envío inmediato al detectar caídas de servicios mediante el Engine de Sentinel.
+                          {t('settings.pushAlertsDesc')}
                         </p>
                       </div>
                       <button 
@@ -295,7 +297,7 @@ export function SettingsPage() {
                           config.notifications.alert_on_failure ? "bg-white text-[#2ecc71] shadow-2xl" : "bg-border-subtle text-text-secondary"
                         )}
                       >
-                        {config.notifications.alert_on_failure ? 'Desactivar Alertas' : 'Activar Alertas'}
+                        {config.notifications.alert_on_failure ? t('settings.deactivateAlerts') : t('settings.activateAlerts')}
                       </button>
                     </div>
                   </div>
@@ -304,7 +306,7 @@ export function SettingsPage() {
                 {activeTab === 'system' && (
                   <div className="grid grid-cols-12 gap-8 pb-10">
                     <div className="col-span-12 md:col-span-6 lg:col-span-4 bg-bg-card border border-border-subtle rounded-[3rem] p-10">
-                      <h4 className="text-text-secondary font-black text-[10px] uppercase tracking-[0.3em] mb-6">Frecuencia de Polling</h4>
+                      <h4 className="text-text-secondary font-black text-[10px] uppercase tracking-[0.3em] mb-6">{t('settings.pollingFreq')}</h4>
                       <div className="flex items-baseline gap-4 mb-4">
                         <input
                           type="number"
@@ -312,13 +314,13 @@ export function SettingsPage() {
                           onBlur={(e) => handleConfigUpdate('system', { default_check_interval: parseInt(e.target.value) })}
                           className="bg-transparent text-6xl font-black text-[#2ecc71] w-32 focus:outline-none"
                         />
-                        <span className="text-text-secondary font-bold text-xl uppercase">seg</span>
+                        <span className="text-text-secondary font-bold text-xl uppercase">{t('settings.seg')}</span>
                       </div>
-                      <p className="text-text-secondary text-xs leading-relaxed border-t border-border-subtle pt-6">Tiempo base entre escaneos de salud para todos los servicios monitorizados.</p>
+                      <p className="text-text-secondary text-xs leading-relaxed border-t border-border-subtle pt-6">{t('settings.pollingDesc')}</p>
                     </div>
 
                     <div className="col-span-12 md:col-span-6 lg:col-span-4 bg-bg-card border border-border-subtle rounded-[3rem] p-10">
-                      <h4 className="text-text-secondary font-black text-[10px] uppercase tracking-[0.3em] mb-6">Retención de Data</h4>
+                      <h4 className="text-text-secondary font-black text-[10px] uppercase tracking-[0.3em] mb-6">{t('settings.dataRetention')}</h4>
                       <div className="flex items-baseline gap-4 mb-4">
                         <input
                           type="number"
@@ -326,18 +328,18 @@ export function SettingsPage() {
                           onBlur={(e) => handleConfigUpdate('system', { log_retention_days: parseInt(e.target.value) })}
                           className="bg-transparent text-6xl font-black text-[#2ecc71] w-32 focus:outline-none"
                         />
-                        <span className="text-text-secondary font-bold text-xl uppercase">días</span>
+                        <span className="text-text-secondary font-bold text-xl uppercase">{t('settings.days')}</span>
                       </div>
-                      <p className="text-text-secondary text-xs leading-relaxed border-t border-border-subtle pt-6">Días que los logs de ping se mantienen en la base de datos local antes de ser purgados.</p>
+                      <p className="text-text-secondary text-xs leading-relaxed border-t border-border-subtle pt-6">{t('settings.retentionDesc')}</p>
                     </div>
 
                     <div className={cn(
                       "col-span-12 lg:col-span-4 rounded-[3rem] p-10 border transition-all duration-500",
                       config.system.maintenance_mode ? "bg-red-500 text-white border-red-600" : "bg-bg-card border-border-subtle"
                     )}>
-                      <h4 className={cn("font-black text-[10px] uppercase tracking-[0.3em] mb-6", config.system.maintenance_mode ? "text-white/80" : "text-text-secondary")}>Modo Mantenimiento</h4>
-                      <h3 className="text-3xl font-black mb-4 tracking-tighter">OFFLINE</h3>
-                      <p className={cn("text-xs leading-relaxed mb-8", config.system.maintenance_mode ? "text-white/70" : "text-text-secondary")}>Detiene todo el monitoreo y notificaciones de forma global.</p>
+                      <h4 className={cn("font-black text-[10px] uppercase tracking-[0.3em] mb-6", config.system.maintenance_mode ? "text-white/80" : "text-text-secondary")}>{t('settings.maintenanceMode')}</h4>
+                      <h3 className="text-3xl font-black mb-4 tracking-tighter">{t('settings.offline')}</h3>
+                      <p className={cn("text-xs leading-relaxed mb-8", config.system.maintenance_mode ? "text-white/70" : "text-text-secondary")}>{t('settings.maintenanceDesc')}</p>
                       <button 
                         onClick={() => handleConfigUpdate('system', { maintenance_mode: !config.system.maintenance_mode })}
                         className={cn(
@@ -345,7 +347,7 @@ export function SettingsPage() {
                           config.system.maintenance_mode ? "bg-white text-red-500 shadow-2xl" : "bg-red-500/10 text-red-500 border border-red-500/20"
                         )}
                       >
-                        {config.system.maintenance_mode ? 'Desactivar Modo' : 'Activar Modo'}
+                        {config.system.maintenance_mode ? t('settings.deactivateMode') : t('settings.activateMode')}
                       </button>
                     </div>
                   </div>
@@ -355,12 +357,12 @@ export function SettingsPage() {
                   <div className="grid grid-cols-12 gap-8 pb-10">
                     <div className="col-span-12 lg:col-span-6 bg-bg-card border border-border-subtle rounded-[3rem] p-12">
                       <div className="mb-10">
-                        <span className="bg-red-500/10 text-red-500 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">Política Global</span>
-                        <h3 className="text-text-primary font-black text-4xl mt-6 tracking-tighter uppercase">Hardening</h3>
+                        <span className="bg-red-500/10 text-red-500 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">{t('settings.hardening')}</span>
+                        <h3 className="text-text-primary font-black text-4xl mt-6 tracking-tighter uppercase">{t('settings.hardeningTitle')}</h3>
                       </div>
                       
                       <div className="space-y-4">
-                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary ml-1">Intentos fallidos máximos</label>
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary ml-1">{t('settings.maxAttempts')}</label>
                         <div className="flex items-center gap-4">
                           <input
                             type="number"
@@ -369,21 +371,21 @@ export function SettingsPage() {
                             className="w-32 bg-bg-main/50 border border-border-subtle rounded-3xl px-8 py-5 text-4xl font-black text-red-500 focus:outline-none focus:border-red-500 transition-all"
                           />
                         </div>
-                        <p className="text-text-secondary text-xs">Bloqueo automático de IP tras superar este límite de intentos.</p>
+                        <p className="text-text-secondary text-xs">{t('settings.maxAttemptsDesc')}</p>
                       </div>
                     </div>
 
                     <div className="col-span-12 lg:col-span-6 bg-text-primary rounded-[3rem] p-12 text-bg-card flex flex-col justify-between">
                       <div>
-                        <h4 className="text-bg-card/50 font-black text-[10px] uppercase tracking-[0.3em] mb-4">Políticas de Acceso</h4>
-                        <h3 className="text-3xl font-black tracking-tight mb-4">Brute Force Protection</h3>
+                        <h4 className="text-bg-card/50 font-black text-[10px] uppercase tracking-[0.3em] mb-4">{t('settings.accessPolicies')}</h4>
+                        <h3 className="text-3xl font-black tracking-tight mb-4">{t('settings.bruteForce')}</h3>
                         <p className="text-bg-card/70 text-sm leading-relaxed">
-                          El sistema bloquea IPs tras detectar actividad inusual. Este parámetro es gestionado a nivel de kernel para máxima seguridad.
+                          {t('settings.bruteForceDesc')}
                         </p>
                       </div>
                       <div className="mt-8 flex items-center gap-3">
                         <div className="h-2 w-2 bg-[#2ecc71] rounded-full animate-pulse" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-[#2ecc71]">Protección Activa</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-[#2ecc71]">{t('settings.activeProtection')}</span>
                       </div>
                     </div>
                   </div>
