@@ -100,14 +100,14 @@ function RuleModal({ services, onClose, onSave, initialData = null }) {
               onClick={onClose}
               className="flex-1 border border-border-subtle text-text-secondary py-3 rounded-2xl text-sm font-bold hover:bg-white/5 transition-all"
             >
-              Cancelar
+              {t('alerts.cancel')}
             </button>
             <button
               type="submit"
               disabled={saving}
               className="flex-1 bg-[#2ecc71] text-[#0f0f1a] font-black py-3 rounded-2xl text-sm disabled:opacity-50 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
-              {saving ? 'Guardando…' : isEdit ? 'Guardar cambios' : 'Crear regla'}
+              {saving ? t('alerts.saving') : isEdit ? t('alerts.saveChanges') : t('alerts.createRule')}
             </button>
           </div>
         </form>
@@ -117,6 +117,7 @@ function RuleModal({ services, onClose, onSave, initialData = null }) {
 }
 
 export function AlertsPage() {
+  const { t } = useTranslation()
   const { rules, loading, createRule, updateRule, deleteRule, toggleRule } = useAlerts()
   const { services } = useServices()
   const [modalState, setModalState] = useState({ isOpen: false, data: null })
@@ -138,7 +139,7 @@ export function AlertsPage() {
           className="flex items-center gap-2 bg-[#2ecc71] text-[#0f0f1a] font-black px-6 py-3 rounded-2xl text-sm hover:bg-[#27ae60] transition-all hover:scale-[1.05] active:scale-[0.95] shadow-lg shadow-[#2ecc71]/20"
         >
           <Plus size={18} strokeWidth={3} />
-          Nueva regla
+          {t('alerts.newRule')}
         </button>
       </div>
 
@@ -153,15 +154,15 @@ export function AlertsPage() {
           <div className="bg-red-500/10 p-8 rounded-[2.5rem] mb-8">
             <ShieldAlert size={64} className="text-red-400" />
           </div>
-          <h3 className="text-text-primary text-2xl font-black mb-4">Sin reglas activas</h3>
+          <h3 className="text-text-primary text-2xl font-black mb-4">{t('alerts.noRules')}</h3>
           <p className="text-text-secondary text-lg mb-10 leading-relaxed max-w-md">
-            Configura notificaciones automáticas para actuar de inmediato ante fallos críticos de tus servicios.
+            {t('alerts.noRulesDesc')}
           </p>
           <button
             onClick={() => setModalState({ isOpen: true, data: null })}
             className="bg-[#2ecc71] text-[#0f0f1a] font-black px-10 py-4 rounded-2xl text-base shadow-xl shadow-[#2ecc71]/20 hover:scale-105 transition-transform"
           >
-            Crear primera regla
+            {t('alerts.createFirst')}
           </button>
         </div>
       ) : (
@@ -173,7 +174,7 @@ export function AlertsPage() {
                   <p className="text-text-primary text-lg font-bold truncate">{rule.service_name}</p>
                   {!rule.is_active && (
                     <span className="bg-white/5 text-text-secondary text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md">
-                      Inactiva
+                      {t('alerts.inactive')}
                     </span>
                   )}
                 </div>
@@ -188,7 +189,7 @@ export function AlertsPage() {
                 <button
                   onClick={() => toggleRule(rule)}
                   className="p-2 text-text-secondary hover:text-[#2ecc71] transition-colors"
-                  title={rule.is_active ? 'Desactivar' : 'Activar'}
+                  title={rule.is_active ? t('alerts.deactivate') : t('alerts.activate')}
                 >
                   {rule.is_active
                     ? <ToggleRight size={28} className="text-[#2ecc71]" />
@@ -232,9 +233,9 @@ export function AlertsPage() {
         isOpen={confirmDelete.isOpen}
         onClose={() => setConfirmDelete({ isOpen: false, id: null })}
         onConfirm={() => deleteRule(confirmDelete.id)}
-        title="¿Eliminar regla?"
-        message="Esta regla de alerta dejará de funcionar inmediatamente. No podrás recuperar esta configuración."
-        confirmText="Eliminar permanentemente"
+        title={t('confirm.deleteRule')}
+        message={t('confirm.deleteRuleMessage')}
+        confirmText={t('confirm.deletePermanently')}
         variant="danger"
       />
     </div>
