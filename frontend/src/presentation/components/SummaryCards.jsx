@@ -1,8 +1,10 @@
 import { useMemo } from 'react'
 import { Activity, ShieldCheck, ShieldAlert, Zap } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 
 export function SummaryCards({ services }) {
+  const { t } = useTranslation()
   const total = services.length
   const up = services.filter(s => s.is_active && s.status === 'up').length
   const down = services.filter(s => s.is_active && s.status === 'down').length
@@ -19,36 +21,36 @@ export function SummaryCards({ services }) {
 
   const cards = [
     {
-      title: 'Latencia Promedio',
+      title: t('summary.avgLatency'),
       value: `${avgLatency}ms`,
       icon: Zap,
       color: 'from-blue-500/20 to-indigo-500/5',
       textColor: 'text-blue-500',
-      desc: 'Global de todos los servicios'
+      desc: t('summary.globalAvg')
     },
     {
-      title: 'Disponibilidad',
+      title: t('summary.availability'),
       value: `${uptimePercent}%`,
       icon: Activity,
       color: 'from-green-500/20 to-emerald-500/5',
       textColor: 'text-green-500',
-      desc: 'Promedio global'
+      desc: t('summary.globalAvgShort')
     },
     {
-      title: 'Servicios Activos',
+      title: t('summary.activeServices'),
       value: up,
       icon: ShieldCheck,
       color: 'from-emerald-500/20 to-teal-500/5',
       textColor: 'text-emerald-500',
-      desc: 'Sistemas operacionales'
+      desc: t('summary.operational')
     },
     {
-      title: 'Incidentes',
+      title: t('summary.incidents'),
       value: down,
       icon: ShieldAlert,
       color: down > 0 ? 'from-red-500/20 to-orange-500/5' : 'from-gray-500/10 to-gray-500/5',
       textColor: down > 0 ? 'text-red-500' : 'text-text-secondary',
-      desc: 'Requieren atención'
+      desc: t('summary.needAttention')
     }
   ]
 
