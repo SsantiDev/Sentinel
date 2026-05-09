@@ -16,13 +16,21 @@ class LogAlertNotifier(IAlertNotifier):
 from django.template.loader import render_to_string
 
 
+from infrastructure.config_manager import ConfigManager
+
 class EmailAlertNotifier(IAlertNotifier):
     def send(self, alert: Alert) -> None:
-        # Use specific recipient if provided, else fallback to global settings
-        if alert.recipient:
+        # Priority: alert.recipient -> global_email from config -> settings.ALERT_EMAIL_RECIPIENTS
+        recipients = []
+        if alert.recipient and alert.recipient.strip():
             recipients = [alert.recipient]
         else:
-            recipients = getattr(settings, 'ALERT_EMAIL_RECIPIENTS', [])
+            config = ConfigManager.get_config()
+            global_email = config.get("notifications", {}).get("global_email")
+            if global_email:
+                recipients = [global_email]
+            else:
+                recipients = getattr(settings, 'ALERT_EMAIL_RECIPIENTS', [])
 
         if not recipients:
             logger.warning("EmailAlertNotifier: no recipients found for alert")
