@@ -51,7 +51,17 @@ class ConfigManager:
         current_config = cls.get_config()
         if section not in current_config:
             current_config[section] = {}
-        
+
         current_config[section].update(data)
+        cls.save_config(current_config)
+        return True
+
+    @classmethod
+    def update_user_pref(cls, username, key, value):
+        """Safely updates a single key in user_preferences[username] without overwriting others."""
+        current_config = cls.get_config()
+        user_prefs = current_config.setdefault('user_preferences', {})
+        user_entry = user_prefs.setdefault(username, {})
+        user_entry[key] = value
         cls.save_config(current_config)
         return True
