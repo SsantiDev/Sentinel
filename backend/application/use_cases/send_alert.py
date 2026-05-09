@@ -2,6 +2,7 @@ from typing import Optional
 from domain.entities.service import Service, CheckResult, Alert
 from domain.interfaces.alert_notifier import IAlertNotifier
 from datetime import datetime, UTC
+from infrastructure.config_manager import ConfigManager
 
 
 def send_alert(
@@ -12,6 +13,11 @@ def send_alert(
     alert_type: str = 'down',
     threshold: Optional[float] = None
 ) -> None:
+    # Verificar si las alertas globales están habilitadas
+    config = ConfigManager.get_config()
+    if not config.get('notifications', {}).get('alert_on_failure', True):
+        return
+
     alert = Alert(
         service_id=service.id,
         service_name=service.name,
