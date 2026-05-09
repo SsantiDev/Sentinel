@@ -18,7 +18,10 @@
             "session_timeout_minutes": 1
         },
         "admin": {
-            "session_timeout_minutes": 48
+            "session_timeout_minutes": 480
+        },
+        "Santiago": {
+            "notification_email": ""
         }
     }
 }

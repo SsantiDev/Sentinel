@@ -32,6 +32,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'interfaces.http.middleware.HardeningMiddleware',
 ]
 
 TEMPLATES = [
@@ -72,6 +73,10 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'infrastructure.tasks.ping_tasks.schedule_all_pings',
         'schedule': 60.0,
     },
+    'purge-trial-data-daily': {
+        'task': 'infrastructure.tasks.ping_tasks.purge_trial_user_data',
+        'schedule': 86400.0,
+    },
 }
 
 from datetime import timedelta
@@ -90,7 +95,7 @@ REST_FRAMEWORK = {
     ),
 }
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
 EMAIL_HOST = env('SMTP_HOST', default='localhost')
 EMAIL_PORT = env.int('SMTP_PORT', default=587)
 EMAIL_HOST_USER = env('SMTP_USER', default='')

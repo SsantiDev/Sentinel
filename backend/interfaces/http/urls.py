@@ -2,11 +2,15 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from interfaces.http.views.service_views import ServiceViewSet, CheckResultViewSet, AlertRuleViewSet
 from interfaces.http.views.config_views import GlobalConfigView, ProfileUpdateView
+from interfaces.http.views.user_views import UserViewSet
+from interfaces.http.views.security_views import BlockedIPViewSet
 
 router = DefaultRouter()
 router.register('services', ServiceViewSet, basename='service')
 router.register('checks', CheckResultViewSet, basename='check')
 router.register('alert-rules', AlertRuleViewSet, basename='alert-rule')
+router.register('users', UserViewSet, basename='user')
+router.register('blocked-ips', BlockedIPViewSet, basename='blocked-ip')
 
 urlpatterns = [
     path('', include(router.urls)),
