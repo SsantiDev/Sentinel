@@ -7,6 +7,9 @@ from infrastructure.external.alert_notifier import (
 from infrastructure.models import ServiceModel
 
 
+from infrastructure.config_manager import ConfigManager
+
+
 def _build_notifier() -> CompositeAlertNotifier:
     return CompositeAlertNotifier([
         LogAlertNotifier(),
@@ -17,6 +20,10 @@ def _build_notifier() -> CompositeAlertNotifier:
 
 @app.task(bind=True, max_retries=3)
 def ping_service_task(self, service_id: int):
+    config = ConfigManager.get_config()
+    if config.get('system', {}).get('maintenance_mode', False):
+        return {"status": "skipped", "reason": "maintenance mode"}
+
     repo = DjangoServiceRepository()
     notifier = _build_notifier()
     try:
@@ -32,6 +39,10 @@ def ping_service_task(self, service_id: int):
 
 @app.task
 def schedule_all_pings():
+    config = ConfigManager.get_config()
+    if config.get('system', {}).get('maintenance_mode', False):
+        return
+
     ids = ServiceModel.objects.filter(is_active=True).values_list('id', flat=True)
     for sid in ids:
         ping_service_task.delay(sid)
