@@ -1,10 +1,10 @@
 import { useEffect } from 'react'
-import { getExpiration, removeToken } from '../../infrastructure/authStorage'
+import { getEffectiveExpiration, removeToken } from '../../infrastructure/authStorage'
 
 export function SessionWatcher() {
   useEffect(() => {
     const checkSession = () => {
-      const expiration = getExpiration()
+      const expiration = getEffectiveExpiration()
       if (!expiration) return
 
       const now = Date.now()
