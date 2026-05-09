@@ -1,18 +1,33 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Server, Globe, Clock, Shield } from 'lucide-react'
 import apiClient from '../../infrastructure/apiClient'
 import { cn } from '../../infrastructure/utils'
 import { useTranslation } from 'react-i18next'
 
+import { useSettings } from '../../application/hooks/useSettings'
+
 export function CreateServiceModal({ onClose, onSuccess }) {
   const { t } = useTranslation()
-  const [form, setForm] = useState({ name: '', url: '', check_interval_seconds: 60, is_active: true })
+  const { config, loading } = useSettings()
+  const [form, setForm] = useState({ 
+    name: '', 
+    url: '', 
+    check_interval_seconds: 60, 
+    is_active: true 
+  })
   const [error, setError] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [loadingSubmit, setLoadingSubmit] = useState(false)
+
+  // Sincronizar el valor por defecto una vez que la config esté disponible
+  useEffect(() => {
+    if (config?.system?.default_check_interval) {
+      setForm(prev => ({ ...prev, check_interval_seconds: config.system.default_check_interval }))
+    }
+  }, [config?.system?.default_check_interval])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setLoading(true)
+    setLoadingSubmit(true)
     setError(null)
     try {
       await apiClient.post('/services/', form)
@@ -21,7 +36,7 @@ export function CreateServiceModal({ onClose, onSuccess }) {
     } catch {
       setError(t('service.createError'))
     } finally {
-      setLoading(false)
+      setLoadingSubmit(false)
     }
   }
 
@@ -107,10 +122,10 @@ export function CreateServiceModal({ onClose, onSuccess }) {
 
           <button 
             type="submit" 
-            disabled={loading} 
+            disabled={loadingSubmit} 
             className="w-full bg-[#2ecc71] text-[#0f0f1a] font-black py-4 rounded-2xl hover:bg-[#27ae60] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 shadow-lg shadow-green-500/10 mt-2"
           >
-            {loading ? t('service.processing') : t('service.save')}
+            {loadingSubmit ? t('service.processing') : t('service.save')}
           </button>
         </form>
       </div>
