@@ -1,6 +1,6 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import apiClient from '../../infrastructure/apiClient'
-import { getToken, setToken, removeToken } from '../../infrastructure/authStorage'
+import { getToken, setToken, removeToken, isSuperUser } from '../../infrastructure/authStorage'
 
 export function useAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState(!!getToken())
@@ -16,5 +16,5 @@ export function useAuth() {
     setIsAuthenticated(false)
   }
 
-  return { login, logout, isAuthenticated }
+  return { login, logout, isAuthenticated, isSuperUser: isSuperUser() }
 }

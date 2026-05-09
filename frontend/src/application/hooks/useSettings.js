@@ -12,11 +12,6 @@ export function useSettings() {
   const [error, setError] = useState(null)
 
   const fetchConfig = async () => {
-    if (!isAdmin()) {
-      setLoading(false)
-      return
-    }
-
     try {
       setLoading(true)
       const { data } = await apiClient.get('/settings/global/')

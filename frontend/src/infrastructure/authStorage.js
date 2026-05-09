@@ -38,3 +38,8 @@ export const isAdmin = () => {
   const payload = getPayload()
   return !!payload?.is_staff
 }
+
+export const isSuperUser = () => {
+  const payload = getPayload()
+  return !!payload?.is_superuser
+}
