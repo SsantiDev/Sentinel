@@ -1,16 +1,22 @@
-import { useState } from 'react'
-import { ShieldAlert, Plus, Trash2, ToggleLeft, ToggleRight, Edit2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { ShieldAlert, Plus, Trash2, ToggleLeft, ToggleRight, Edit2, Mail, Globe } from 'lucide-react'
 import { useAlerts } from '../../application/hooks/useAlerts'
 import { useServices } from '../../application/hooks/useServices'
+import { useSettings } from '../../application/hooks/useSettings'
 import { ConfirmModal } from '../components/ConfirmModal'
 import { useTranslation } from 'react-i18next'
 
 function RuleModal({ services, onClose, onSave, initialData = null }) {
   const { t } = useTranslation()
+  const { config } = useSettings()
+  const globalEmail = config.notifications?.global_email || 'admin@sentinel.com'
+
   const CONDITION_LABELS = {
     consecutive_failures: t('alerts.conditions.consecutive_failures'),
     latency_above: t('alerts.conditions.latency_above'),
   }
+
+  const [useDefault, setUseDefault] = useState(!initialData?.contact)
   const [form, setForm] = useState(initialData ?? {
     service: services[0]?.id ?? '',
     condition: 'consecutive_failures',
@@ -27,7 +33,11 @@ function RuleModal({ services, onClose, onSave, initialData = null }) {
     e.preventDefault()
     setSaving(true)
     try {
-      await onSave(form)
+      const dataToSave = { 
+        ...form, 
+        contact: useDefault ? '' : form.contact 
+      }
+      await onSave(dataToSave)
       onClose()
     } finally {
       setSaving(false)
@@ -82,16 +92,40 @@ function RuleModal({ services, onClose, onSave, initialData = null }) {
             />
           </div>
 
-          <div>
-            <label className="text-text-secondary text-xs font-bold uppercase tracking-wider mb-2 block">{t('alerts.contactEmail')}</label>
-            <input
-              type="email"
-              value={form.contact}
-              onChange={e => set('contact', e.target.value)}
-              placeholder="alert@example.com"
-              className="w-full bg-bg-card border border-border-subtle text-text-primary px-4 py-3 rounded-2xl text-sm focus:outline-none focus:border-[#2ecc71] transition-colors"
-              required
-            />
+          <div className="pt-2">
+            <div className="flex items-center justify-between mb-4 bg-white/5 p-4 rounded-2xl border border-border-subtle">
+              <div className="flex items-center gap-3">
+                <Globe size={18} className={useDefault ? "text-[#2ecc71]" : "text-text-secondary"} />
+                <div>
+                  <p className="text-text-primary text-sm font-bold">{t('alerts.useDefaultEmail') || 'Usar Email Global'}</p>
+                  <p className="text-text-secondary text-[10px] font-medium truncate max-w-[180px]">{globalEmail}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setUseDefault(!useDefault)}
+                className="text-text-primary"
+              >
+                {useDefault ? <ToggleRight size={32} className="text-[#2ecc71]" /> : <ToggleLeft size={32} className="text-text-secondary" />}
+              </button>
+            </div>
+
+            {!useDefault && (
+              <div className="animate-in slide-in-from-top-2 duration-200">
+                <label className="text-text-secondary text-xs font-bold uppercase tracking-wider mb-2 block">{t('alerts.customContactEmail') || 'Email Personalizado'}</label>
+                <div className="relative">
+                  <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary" />
+                  <input
+                    type="email"
+                    value={form.contact}
+                    onChange={e => set('contact', e.target.value)}
+                    placeholder="alert@example.com"
+                    className="w-full bg-bg-card border border-border-subtle text-text-primary pl-11 pr-4 py-3 rounded-2xl text-sm focus:outline-none focus:border-[#2ecc71] transition-colors"
+                    required={!useDefault}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-3 pt-4">
@@ -118,6 +152,10 @@ function RuleModal({ services, onClose, onSave, initialData = null }) {
 
 export function AlertsPage() {
   const { t } = useTranslation()
+  const CONDITION_LABELS = {
+    consecutive_failures: t('alerts.conditions.consecutive_failures'),
+    latency_above: t('alerts.conditions.latency_above'),
+  }
   const { rules, loading, createRule, updateRule, deleteRule, toggleRule } = useAlerts()
   const { services } = useServices()
   const [modalState, setModalState] = useState({ isOpen: false, data: null })
@@ -181,7 +219,7 @@ export function AlertsPage() {
                 <p className="text-text-secondary text-sm font-medium opacity-80">
                   {CONDITION_LABELS[rule.condition]} <span className="text-[#2ecc71]">›</span> {rule.threshold} 
                   <span className="mx-2 opacity-30">|</span>
-                  <span className="text-text-primary/60">{rule.contact}</span>
+                  <span className="text-text-primary/60">{rule.contact || t('alerts.globalDefault') || 'Email Global'}</span>
                 </p>
               </div>
               
