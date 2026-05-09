@@ -2,10 +2,13 @@ import logging
 import requests
 from django.core.mail import send_mail
 from django.conf import settings
+from django.db.models import F
 from domain.entities.service import Alert
 from domain.interfaces.alert_notifier import IAlertNotifier
 
 logger = logging.getLogger(__name__)
+
+TRIAL_EMAIL_LIMIT = 30
 
 
 class LogAlertNotifier(IAlertNotifier):
@@ -14,30 +17,50 @@ class LogAlertNotifier(IAlertNotifier):
 
 
 from django.template.loader import render_to_string
-
-
 from infrastructure.config_manager import ConfigManager
+
 
 class EmailAlertNotifier(IAlertNotifier):
     def send(self, alert: Alert) -> None:
-        # Priority: alert.recipient -> global_email from config -> settings.ALERT_EMAIL_RECIPIENTS
+        # Check trial email limit for non-privileged service owners
+        try:
+            from infrastructure.models import ServiceModel, UserProfileModel
+            service = ServiceModel.objects.select_related('owner').filter(id=alert.service_id).first()
+            if service and service.owner and not (service.owner.is_staff or service.owner.is_superuser):
+                profile, _ = UserProfileModel.objects.get_or_create(user=service.owner)
+                if profile.emails_sent >= TRIAL_EMAIL_LIMIT:
+                    logger.warning(
+                        "Alert email blocked for user %s — trial limit of %d reached",
+                        service.owner.username, TRIAL_EMAIL_LIMIT,
+                    )
+                    return
+                UserProfileModel.objects.filter(pk=profile.pk).update(emails_sent=F('emails_sent') + 1)
+        except Exception as exc:
+            logger.warning("Could not check email limit: %s", exc)
+
+        # Priority: alert.recipient -> owner's personal email -> global_email -> settings fallback
         recipients = []
         if alert.recipient and alert.recipient.strip():
             recipients = [alert.recipient]
         else:
-            config = ConfigManager.get_config()
-            global_email = config.get("notifications", {}).get("global_email")
-            if global_email:
-                recipients = [global_email]
-            else:
-                recipients = getattr(settings, 'ALERT_EMAIL_RECIPIENTS', [])
+            if service and service.owner:
+                user_prefs = ConfigManager.get_user_config(service.owner.username)
+                personal_email = user_prefs.get('notification_email', '').strip()
+                if personal_email:
+                    recipients = [personal_email]
+            if not recipients:
+                config = ConfigManager.get_config()
+                global_email = config.get("notifications", {}).get("global_email")
+                if global_email:
+                    recipients = [global_email]
+                else:
+                    recipients = getattr(settings, 'ALERT_EMAIL_RECIPIENTS', [])
 
         if not recipients:
             logger.warning("EmailAlertNotifier: no recipients found for alert")
             return
-            
+
         try:
-            # Determine dynamic subject based on alert type
             if alert.alert_type == 'latency_above':
                 subject = f"⚠️ Rendimiento Degradado: {alert.service_name}"
             elif alert.alert_type == 'consecutive_failures':
@@ -45,12 +68,11 @@ class EmailAlertNotifier(IAlertNotifier):
             else:
                 subject = f"🔴 Incidencia de Conexión: {alert.service_name}"
 
-            # Render HTML content
             html_content = render_to_string('emails/alert_email.html', {'alert': alert})
-            
+
             send_mail(
                 subject=subject,
-                message=alert.message,  # Fallback plain text
+                message=alert.message,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=recipients,
                 html_message=html_content,
