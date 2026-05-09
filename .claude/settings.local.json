@@ -34,7 +34,19 @@
       "Bash(sudo -S docker compose exec web python manage.py shell -c ' *)",
       "Bash(python3 *)",
       "Bash(npm run *)",
-      "Bash(sudo docker *)"
+      "Bash(sudo docker *)",
+      "Bash(node --input-type=module --eval ' *)",
+      "Bash(sudo -S docker compose exec web python -c ' *)",
+      "Bash(sudo -S docker compose logs worker --tail=20)",
+      "Bash(sudo -S docker compose -f /home/spsp/Projects/Sentinel/Sentinel/docker-compose.yml exec web python manage.py makemigrations infrastructure --name=\"servicemodel_add_owner\")",
+      "Bash(sudo -S docker compose -f /home/spsp/Projects/Sentinel/Sentinel/docker-compose.yml exec web python manage.py migrate)",
+      "Bash(sudo -S docker compose -f /home/spsp/Projects/Sentinel/Sentinel/docker-compose.yml restart web)",
+      "Bash(sudo -S docker compose -f /home/spsp/Projects/Sentinel/Sentinel/docker-compose.yml exec db psql -U sentinel -d sentinel -c \"SELECT id, name, url, owner_id FROM services;\")",
+      "Bash(sudo -S docker compose -f /home/spsp/Projects/Sentinel/Sentinel/docker-compose.yml exec db psql -U sentinel -c \"SELECT id, name, url, owner_id FROM services;\")",
+      "Bash(sudo -S docker compose -f /home/spsp/Projects/Sentinel/Sentinel/docker-compose.yml exec db psql -U sentinel sentinel_db -c \"SELECT id, name, url, owner_id FROM services;\")",
+      "Bash(sudo -S docker compose -f /home/spsp/Projects/Sentinel/Sentinel/docker-compose.yml exec db psql -U sentinel sentinel_db -c \"SELECT id, username, email, is_superuser FROM auth_user WHERE is_superuser = true;\")",
+      "Bash(sudo -S docker compose -f /home/spsp/Projects/Sentinel/Sentinel/docker-compose.yml exec db psql -U sentinel sentinel_db -c \"UPDATE services SET owner_id = 1 WHERE owner_id IS NULL; SELECT id, name, owner_id FROM services;\")",
+      "Bash(node *)"
     ]
   }
 }
