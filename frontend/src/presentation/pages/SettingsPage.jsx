@@ -1,19 +1,24 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import { 
-  User, Bell, Shield, Database, Save, Loader2, CheckCircle2, 
+import {
+  User, Bell, Shield, Database, Save, Loader2, CheckCircle2,
   AlertCircle, ChevronRight, Mail, Clock, ShieldCheck, HardDrive,
-  Activity, Globe, Lock, Trash2
+  Activity, Globe, Lock, Trash2, Languages
 } from 'lucide-react'
 import { useSettings } from '../../application/hooks/useSettings'
+import { useLimits } from '../../application/hooks/useLimits'
 import { cn } from '../../infrastructure/utils'
 import { isAdmin } from '../../infrastructure/authStorage'
+import { ContactAdminButton } from '../components/ContactAdminButton'
 
 export function SettingsPage() {
   const { config, loading, error, updateConfig, updateProfile } = useSettings()
-  const { t } = useTranslation()
+  const { limits } = useLimits()
+  const { t, i18n } = useTranslation()
   const isUserAdmin = isAdmin()
+  const emailsUsed = limits?.emails?.used ?? 0
+  const emailAtLimit = !isUserAdmin && emailsUsed >= 30
   const [activeTab, setActiveTab] = useState('profile')
   const [saveStatus, setSaveStatus] = useState({ show: false, success: true, message: '' })
 
@@ -89,8 +94,7 @@ export function SettingsPage() {
     )
   }
 
-  // Si hay error pero es admin, mostramos el error. Si no es admin y falla global, no importa.
-  if (isUserAdmin && (error || !config)) {
+  if (error || !config) {
     return (
       <div className="h-[70vh] flex flex-col items-center justify-center gap-4">
         <AlertCircle className="text-red-500" size={48} />
@@ -101,8 +105,8 @@ export function SettingsPage() {
 
   const tabs = [
     { id: 'profile', label: t('settings.profile') },
+    { id: 'notifications', label: t('settings.notifications') },
     ...(isUserAdmin ? [
-      { id: 'notifications', label: t('settings.notifications') },
       { id: 'system', label: t('settings.system') },
       { id: 'security', label: t('settings.security') },
     ] : [])
@@ -118,33 +122,55 @@ export function SettingsPage() {
       <div className="col-span-12 lg:col-span-7 flex flex-col gap-8">
         <div className="bg-bg-card border border-border-subtle rounded-[3rem] p-12 shadow-sm">
           <h3 className="text-text-primary font-black text-3xl mb-10 tracking-tight">{t('settings.sessionPrefs')}</h3>
-          
-          <form onSubmit={handleSessionUpdate} className="space-y-8">
-            <div className="space-y-4">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#2ecc71] ml-1">{t('settings.sessionTimeout')}</label>
-              <div className="flex items-center gap-6">
-                <input
-                  type="number"
-                  value={profileForm.session_timeout}
-                  onChange={(e) => setProfileForm({...profileForm, session_timeout: parseInt(e.target.value)})}
-                  className="w-40 bg-bg-main/50 border border-border-subtle rounded-3xl px-8 py-5 text-4xl font-black focus:outline-none focus:border-[#2ecc71] transition-all"
-                />
-                <div className="flex-1">
-                  <p className="text-text-primary font-bold">{t('settings.sessionIndependent')}</p>
-                  <p className="text-text-secondary text-xs">{t('settings.sessionDesc')}</p>
+
+          {isUserAdmin ? (
+            <form onSubmit={handleSessionUpdate} className="space-y-8">
+              <div className="space-y-4">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#2ecc71] ml-1">{t('settings.sessionTimeout')}</label>
+                <div className="flex items-center gap-6">
+                  <input
+                    type="number"
+                    value={profileForm.session_timeout}
+                    onChange={(e) => setProfileForm({...profileForm, session_timeout: parseInt(e.target.value)})}
+                    className="w-40 bg-bg-main/50 border border-border-subtle rounded-3xl px-8 py-5 text-4xl font-black focus:outline-none focus:border-[#2ecc71] transition-all"
+                  />
+                  <div className="flex-1">
+                    <p className="text-text-primary font-bold">{t('settings.sessionIndependent')}</p>
+                    <p className="text-text-secondary text-xs">{t('settings.sessionDesc')}</p>
+                  </div>
                 </div>
               </div>
+              <button
+                type="submit"
+                className="w-full bg-[#2ecc71] text-white h-16 rounded-3xl text-xs font-black uppercase tracking-[0.3em] hover:scale-[1.01] transition-all shadow-xl shadow-[#2ecc71]/20"
+              >
+                {t('settings.saveSession')}
+              </button>
+            </form>
+          ) : (
+            <div className="space-y-6">
+              <div className="flex items-center gap-4 p-6 bg-bg-main/40 border border-border-subtle rounded-2xl">
+                <div className="flex-shrink-0 p-3 bg-border-subtle/50 rounded-xl">
+                  <Lock className="text-text-secondary" size={20} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-text-primary font-bold text-sm">{t('trial.sessionLocked')}</p>
+                  <p className="text-text-secondary text-xs mt-1 leading-relaxed">{t('trial.sessionLockedDesc')}</p>
+                </div>
+                <div className="flex-shrink-0 text-right">
+                  <p className="text-[#2ecc71] font-black text-2xl leading-none">60</p>
+                  <p className="text-text-secondary text-[10px] uppercase font-bold">min</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between px-1">
+                <p className="text-text-secondary text-[10px] uppercase tracking-widest font-bold">{t('trial.retentionNote')}</p>
+                <ContactAdminButton subject="Sentinel - Ampliar sesión de plan de prueba" />
+              </div>
             </div>
-
-            <button
-              type="submit"
-              className="w-full bg-[#2ecc71] text-white h-16 rounded-3xl text-xs font-black uppercase tracking-[0.3em] hover:scale-[1.01] transition-all shadow-xl shadow-[#2ecc71]/20"
-            >
-              {t('settings.saveSession')}
-            </button>
-          </form>
+          )}
         </div>
 
+        {/* Panel de Seguridad (Vuelve a la izquierda) */}
         <div className="bg-bg-card border border-border-subtle rounded-[3rem] p-12 shadow-sm">
           <h4 className="text-text-primary font-bold text-xl uppercase tracking-tighter mb-8">{t('settings.accountSecurity')}</h4>
           <form onSubmit={handlePasswordUpdate} className="space-y-6">
@@ -191,19 +217,59 @@ export function SettingsPage() {
         </div>
       </div>
 
-      <div className="col-span-12 lg:col-span-5 flex flex-col gap-8">
-        <div className="bg-[#2ecc71]/5 border border-[#2ecc71]/20 rounded-[3rem] p-12 flex flex-col justify-center h-full">
-          <h4 className="text-[#2ecc71] font-black text-xs uppercase tracking-[0.3em] mb-6">{t('settings.hardeningActive')}</h4>
-          <div className="space-y-10">
+      <div className="col-span-12 lg:col-span-5 flex flex-col gap-8 sticky top-0 h-fit">
+        {/* Panel de Hardening */}
+        <div className="bg-[#2ecc71]/5 border border-[#2ecc71]/20 rounded-[3rem] p-10 flex flex-col justify-center">
+          <h4 className="text-[#2ecc71] font-black text-[10px] uppercase tracking-[0.3em] mb-6">{t('settings.hardeningActive')}</h4>
+          <div className="space-y-6">
             <div>
-              <p className="text-text-primary text-4xl font-black tracking-tighter leading-none mb-4">{profileForm.session_timeout}m</p>
-              <p className="text-text-secondary text-sm">{t('settings.sessionExpiry')}</p>
+              <p className="text-text-primary text-4xl font-black tracking-tighter leading-none mb-2">
+                {isUserAdmin ? `${profileForm.session_timeout}m` : '60m'}
+              </p>
+              <p className="text-text-secondary text-xs uppercase font-bold">{t('settings.sessionExpiry')}</p>
+              {!isUserAdmin && (
+                <p className="text-text-secondary text-[10px] mt-1">{t('trial.planBadge')}</p>
+              )}
             </div>
-            <div className="pt-10 border-t border-[#2ecc71]/10">
-              <p className="text-text-secondary text-xs leading-relaxed italic">
+            <div className="pt-6 border-t border-[#2ecc71]/10">
+              <p className="text-text-secondary text-[10px] leading-relaxed italic">
                 {t('settings.securityQuote')}
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* Panel de Idioma */}
+        <div className="bg-bg-card border border-border-subtle rounded-[3rem] p-10 shadow-sm">
+          <div className="flex items-center justify-between mb-8">
+            <h4 className="text-text-primary font-bold text-lg uppercase tracking-tighter">{t('settings.language')}</h4>
+            <Languages className="text-[#2ecc71]" size={20} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => {
+                i18n.changeLanguage('es')
+                localStorage.setItem('sentinel_lang', 'es')
+              }}
+              className={cn(
+                "flex items-center justify-center gap-2 h-12 rounded-xl font-black transition-all border text-[10px]",
+                i18n.language === 'es' ? "bg-[#2ecc71]/10 border-[#2ecc71] text-[#2ecc71]" : "bg-bg-main/50 border-border-subtle text-text-secondary"
+              )}
+            >
+              <span className="text-sm">🇪🇸</span> ES
+            </button>
+            <button
+              onClick={() => {
+                i18n.changeLanguage('en')
+                localStorage.setItem('sentinel_lang', 'en')
+              }}
+              className={cn(
+                "flex items-center justify-center gap-2 h-12 rounded-xl font-black transition-all border text-[10px]",
+                i18n.language === 'en' ? "bg-[#2ecc71]/10 border-[#2ecc71] text-[#2ecc71]" : "bg-bg-main/50 border-border-subtle text-text-secondary"
+              )}
+            >
+              <span className="text-sm">🇺🇸</span> EN
+            </button>
           </div>
         </div>
       </div>
@@ -265,48 +331,121 @@ export function SettingsPage() {
                 {activeTab === 'profile' && renderProfile()}
 
                 {activeTab === 'notifications' && (
-                  <div className="grid grid-cols-12 gap-8 pb-10">
-                    <div className="col-span-12 lg:col-span-7 bg-bg-card border border-border-subtle rounded-[3rem] p-12">
-                      <h3 className="text-text-primary font-black text-3xl mb-10 tracking-tight uppercase">{t('settings.emailDestination')}</h3>
-                      <div className="space-y-6">
-                        <div className="flex items-center gap-6 p-8 bg-bg-main/30 rounded-[2rem] border border-border-subtle">
-                          <Mail className="text-[#2ecc71]" size={32} />
-                          <div className="flex-1">
-                            <input
-                              type="email"
-                              defaultValue={config.notifications.global_email}
-                              onBlur={(e) => handleConfigUpdate('notifications', { global_email: e.target.value })}
-                              className="w-full bg-transparent text-2xl font-black text-text-primary focus:outline-none"
-                              placeholder="admin@sentinel.cloud"
-                            />
-                            <p className="text-text-secondary text-[10px] font-black uppercase tracking-widest mt-2">{t('settings.alertEndpoint')}</p>
+                  isUserAdmin ? (
+                    <div className="grid grid-cols-12 gap-8 pb-10">
+                      <div className="col-span-12 lg:col-span-7 bg-bg-card border border-border-subtle rounded-[3rem] p-12">
+                        <h3 className="text-text-primary font-black text-3xl mb-10 tracking-tight uppercase">{t('settings.emailDestination')}</h3>
+                        <div className="space-y-6">
+                          <div className="flex items-center gap-6 p-8 bg-bg-main/30 rounded-[2rem] border border-border-subtle">
+                            <Mail className="text-[#2ecc71]" size={32} />
+                            <div className="flex-1">
+                              <input
+                                type="email"
+                                defaultValue={config.notifications.global_email}
+                                onBlur={(e) => handleConfigUpdate('notifications', { global_email: e.target.value })}
+                                className="w-full bg-transparent text-2xl font-black text-text-primary focus:outline-none"
+                                placeholder="admin@sentinel.cloud"
+                              />
+                              <p className="text-text-secondary text-[10px] font-black uppercase tracking-widest mt-2">{t('settings.alertEndpoint')}</p>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-
-                    <div className={cn(
-                      "col-span-12 lg:col-span-5 rounded-[3rem] p-12 flex flex-col justify-between transition-all duration-500",
-                      config.notifications.alert_on_failure ? "bg-[#2ecc71] text-white" : "bg-bg-card border border-border-subtle text-text-primary"
-                    )}>
-                      <div>
-                        <h4 className={cn("font-black text-[10px] uppercase tracking-[0.3em] mb-4", config.notifications.alert_on_failure ? "text-white/70" : "text-text-secondary")}>{t('settings.channelStatus')}</h4>
-                        <h3 className="text-4xl font-black tracking-tight mb-4">{t('settings.pushAlerts')}</h3>
-                        <p className={cn("text-sm leading-relaxed", config.notifications.alert_on_failure ? "text-white/80" : "text-text-secondary")}>
-                          {t('settings.pushAlertsDesc')}
-                        </p>
+                      <div className={cn(
+                        "col-span-12 lg:col-span-5 rounded-[3rem] p-12 flex flex-col justify-between transition-all duration-500",
+                        config.notifications.alert_on_failure ? "bg-[#2ecc71] text-white" : "bg-bg-card border border-border-subtle text-text-primary"
+                      )}>
+                        <div>
+                          <h4 className={cn("font-black text-[10px] uppercase tracking-[0.3em] mb-4", config.notifications.alert_on_failure ? "text-white/70" : "text-text-secondary")}>{t('settings.channelStatus')}</h4>
+                          <h3 className="text-4xl font-black tracking-tight mb-4">{t('settings.pushAlerts')}</h3>
+                          <p className={cn("text-sm leading-relaxed", config.notifications.alert_on_failure ? "text-white/80" : "text-text-secondary")}>
+                            {t('settings.pushAlertsDesc')}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleConfigUpdate('notifications', { alert_on_failure: !config.notifications.alert_on_failure })}
+                          className={cn(
+                            "w-full h-14 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] transition-all",
+                            config.notifications.alert_on_failure ? "bg-white text-[#2ecc71] shadow-2xl" : "bg-border-subtle text-text-secondary"
+                          )}
+                        >
+                          {config.notifications.alert_on_failure ? t('settings.deactivateAlerts') : t('settings.activateAlerts')}
+                        </button>
                       </div>
-                      <button 
-                        onClick={() => handleConfigUpdate('notifications', { alert_on_failure: !config.notifications.alert_on_failure })}
-                        className={cn(
-                          "w-full h-14 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] transition-all",
-                          config.notifications.alert_on_failure ? "bg-white text-[#2ecc71] shadow-2xl" : "bg-border-subtle text-text-secondary"
-                        )}
-                      >
-                        {config.notifications.alert_on_failure ? t('settings.deactivateAlerts') : t('settings.activateAlerts')}
-                      </button>
                     </div>
-                  </div>
+                  ) : (
+                    /* Trial user notifications view */
+                    <div className="grid grid-cols-12 gap-8 pb-10">
+                      <div className="col-span-12 lg:col-span-7 bg-bg-card border border-border-subtle rounded-[3rem] p-12">
+                        <h3 className="text-text-primary font-black text-3xl mb-2 tracking-tight uppercase">{t('trial.emailDestTitle')}</h3>
+                        <p className="text-text-secondary text-sm mb-10">{t('trial.emailDestDesc')}</p>
+
+                        {emailAtLimit ? (
+                          <div className="space-y-6">
+                            <div className="flex items-center gap-4 p-6 bg-red-500/5 border border-red-500/20 rounded-2xl">
+                              <Lock className="text-red-400 flex-shrink-0" size={20} />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-red-400 font-bold text-sm">{t('trial.emailAtLimitBanner')}</p>
+                                <p className="text-text-secondary text-xs mt-1 leading-relaxed">{t('trial.emailLimitDesc')}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-6 p-8 bg-bg-main/30 rounded-[2rem] border border-border-subtle opacity-40 pointer-events-none select-none">
+                              <Mail className="text-text-secondary" size={32} />
+                              <div className="flex-1">
+                                <p className="text-text-secondary text-2xl font-black">{config.notifications.global_email || '—'}</p>
+                                <p className="text-text-secondary text-[10px] font-black uppercase tracking-widest mt-2">{t('settings.alertEndpoint')}</p>
+                              </div>
+                            </div>
+                            <div className="flex justify-end">
+                              <ContactAdminButton label={t('trial.contactAdmin')} subject="Sentinel - Ampliar límite de emails" />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-6">
+                            <div className="flex items-center gap-6 p-8 bg-bg-main/30 rounded-[2rem] border border-border-subtle">
+                              <Mail className="text-[#2ecc71]" size={32} />
+                              <div className="flex-1">
+                                <input
+                                  type="email"
+                                  defaultValue={config.notifications.global_email}
+                                  onBlur={(e) => handleConfigUpdate('notifications', { global_email: e.target.value })}
+                                  className="w-full bg-transparent text-2xl font-black text-text-primary focus:outline-none"
+                                  placeholder="tu@email.com"
+                                />
+                                <p className="text-text-secondary text-[10px] font-black uppercase tracking-widest mt-2">{t('settings.alertEndpoint')}</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="col-span-12 lg:col-span-5 flex flex-col gap-6">
+                        <div className="bg-bg-card border border-border-subtle rounded-[3rem] p-10">
+                          <h4 className="text-text-secondary font-black text-[10px] uppercase tracking-[0.3em] mb-6">{t('trial.emailUsageLabel')}</h4>
+                          <div className="flex items-baseline gap-2 mb-3">
+                            <span className={cn("text-5xl font-black tracking-tighter", emailAtLimit ? "text-red-400" : "text-[#2ecc71]")}>{emailsUsed}</span>
+                            <span className="text-text-secondary font-bold text-lg">/ 30</span>
+                          </div>
+                          <div className="w-full bg-border-subtle/40 rounded-full h-2 mb-3">
+                            <div
+                              className={cn("h-2 rounded-full transition-all", emailAtLimit ? "bg-red-400" : "bg-[#2ecc71]")}
+                              style={{ width: `${Math.min((emailsUsed / 30) * 100, 100)}%` }}
+                            />
+                          </div>
+                          <p className="text-text-secondary text-xs">{emailsUsed} {t('trial.emailsUsed')}</p>
+                          {emailAtLimit && (
+                            <div className="mt-4 pt-4 border-t border-border-subtle flex justify-start">
+                              <ContactAdminButton label={t('trial.contactAdmin')} subject="Sentinel - Ampliar límite de emails" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="bg-bg-card border border-border-subtle rounded-[3rem] p-10">
+                          <h4 className="text-[#2ecc71] font-black text-[10px] uppercase tracking-[0.3em] mb-4">{t('trial.planBadge')}</h4>
+                          <p className="text-text-secondary text-xs leading-relaxed">{t('trial.retentionNote')}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )
                 )}
 
                 {activeTab === 'system' && (
