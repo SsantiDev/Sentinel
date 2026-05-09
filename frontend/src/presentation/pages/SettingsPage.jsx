@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { 
@@ -23,6 +23,12 @@ export function SettingsPage() {
     confirm: '',
     session_timeout: config?.security?.session_timeout_minutes || 480 
   })
+
+  useEffect(() => {
+    if (config?.security?.session_timeout_minutes !== undefined) {
+      setProfileForm(prev => ({ ...prev, session_timeout: config.security.session_timeout_minutes }))
+    }
+  }, [config?.security?.session_timeout_minutes])
 
   const showStatus = (success, message) => {
     setSaveStatus({ show: true, success, message })
