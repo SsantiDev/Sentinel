@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import apiClient from '../../infrastructure/apiClient'
-import { isAdmin } from '../../infrastructure/authStorage'
+import { isAdmin, setToken } from '../../infrastructure/authStorage'
 
 export function useSettings() {
   const [config, setConfig] = useState({
@@ -43,7 +43,16 @@ export function useSettings() {
 
   const updateProfile = async (profileData) => {
     try {
-      await apiClient.post('/settings/profile/password/', profileData)
+      const { data } = await apiClient.post('/settings/profile/password/', profileData)
+      if (profileData.session_timeout_minutes !== undefined) {
+        if (data.access) {
+          setToken(data.access)
+        }
+        setConfig(prev => ({
+          ...prev,
+          security: { ...prev.security, session_timeout_minutes: profileData.session_timeout_minutes }
+        }))
+      }
       return { success: true }
     } catch (err) {
       return { success: false, error: err.response?.data?.error || 'Error al actualizar perfil' }
