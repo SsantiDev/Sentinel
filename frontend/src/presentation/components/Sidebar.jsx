@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Activity, Bell, History, Settings, LogOut, Sun, Moon, Languages } from 'lucide-react'
+import { Activity, Bell, History, Settings, LogOut, Sun, Moon, Users } from 'lucide-react'
 import { useAuth } from '../../application/hooks/useAuth'
 import { useTheme } from '../../application/context/ThemeContext'
 import { cn } from '../../infrastructure/utils'
@@ -7,11 +7,11 @@ import logo from '../../assets/logo.png'
 import { useTranslation } from 'react-i18next'
 
 export function Sidebar() {
-  const { logout } = useAuth()
+  const { logout, isSuperUser } = useAuth()
   const { isDark, toggleTheme } = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
 
   const menuItems = [
     { icon: Activity, label: t('nav.dashboard'), path: '/dashboard' },
@@ -20,10 +20,8 @@ export function Sidebar() {
     { icon: Settings, label: t('nav.settings'), path: '/settings' },
   ]
 
-  const toggleLang = () => {
-    const next = i18n.language === 'es' ? 'en' : 'es'
-    i18n.changeLanguage(next)
-    localStorage.setItem('sentinel_lang', next)
+  if (isSuperUser) {
+    menuItems.push({ icon: Users, label: t('nav.admin'), path: '/admin' })
   }
 
   const handleLogout = () => {
@@ -70,13 +68,6 @@ export function Sidebar() {
           >
             {isDark ? <Sun size={18} /> : <Moon size={18} />}
             {isDark ? t('nav.lightMode') : t('nav.darkMode')}
-          </button>
-          <button
-            onClick={toggleLang}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-border-subtle/50 transition-all duration-200"
-          >
-            <Languages size={18} />
-            {i18n.language === 'es' ? 'EN' : 'ES'}
           </button>
           <button
             onClick={handleLogout}

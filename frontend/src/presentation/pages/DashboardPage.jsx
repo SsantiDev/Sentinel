@@ -6,13 +6,17 @@ import { ServiceCard } from '../components/ServiceCard'
 import { CreateServiceModal } from '../components/CreateServiceModal'
 import { SummaryCards } from '../components/SummaryCards'
 import { SkeletonCard, SkeletonSummary } from '../components/SkeletonCard'
+import { ContactAdminButton } from '../components/ContactAdminButton'
 import { useTranslation } from 'react-i18next'
+import { isAdmin } from '../../infrastructure/authStorage'
 
 export function DashboardPage() {
   const { t } = useTranslation()
   const { services, loading, error, refetch, silentRefetch, toggleService } = useServices()
   const [showModal, setShowModal] = useState(false)
   const [search, setSearch] = useState('')
+  const userIsAdmin = isAdmin()
+  const atServiceLimit = !userIsAdmin && services.length >= 3
 
   useEffect(() => {
     const id = setInterval(silentRefetch, 30000)
@@ -45,9 +49,13 @@ export function DashboardPage() {
               className="bg-bg-card border border-border-subtle text-text-primary pl-10 pr-4 py-2.5 rounded-xl w-full md:w-64 focus:outline-none focus:border-[#2ecc71] transition-all shadow-sm"
             />
           </div>
+          {atServiceLimit && (
+            <ContactAdminButton subject="Sentinel - Ampliar límite de servicios" />
+          )}
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 bg-[#2ecc71] text-[#0f0f1a] font-bold px-5 py-2.5 rounded-xl hover:bg-[#27ae60] hover:scale-105 active:scale-95 transition-all shadow-lg shadow-green-500/10 whitespace-nowrap"
+            disabled={atServiceLimit}
+            className="flex items-center gap-2 bg-[#2ecc71] text-[#0f0f1a] font-bold px-5 py-2.5 rounded-xl hover:bg-[#27ae60] hover:scale-105 active:scale-95 transition-all shadow-lg shadow-green-500/10 whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
             <Plus size={20} />
             {t('dashboard.new')}
@@ -87,7 +95,7 @@ export function DashboardPage() {
         )}
       </div>
 
-      {showModal && <CreateServiceModal onClose={() => setShowModal(false)} onSuccess={refetch} />}
+      {showModal && <CreateServiceModal onClose={() => setShowModal(false)} onSuccess={refetch} serviceCount={services.length} />}
     </div>
   )
 }

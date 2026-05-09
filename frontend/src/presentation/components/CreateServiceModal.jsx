@@ -1,19 +1,23 @@
 import { useState, useEffect } from 'react'
-import { X, Server, Globe, Clock, Shield } from 'lucide-react'
+import { X, Server, Globe, Clock, Shield, Lock } from 'lucide-react'
 import apiClient from '../../infrastructure/apiClient'
 import { cn } from '../../infrastructure/utils'
 import { useTranslation } from 'react-i18next'
+import { isAdmin } from '../../infrastructure/authStorage'
+import { ContactAdminButton } from './ContactAdminButton'
 
 import { useSettings } from '../../application/hooks/useSettings'
 
-export function CreateServiceModal({ onClose, onSuccess }) {
+export function CreateServiceModal({ onClose, onSuccess, serviceCount = 0 }) {
   const { t } = useTranslation()
   const { config, loading } = useSettings()
-  const [form, setForm] = useState({ 
-    name: '', 
-    url: '', 
-    check_interval_seconds: 60, 
-    is_active: true 
+  const userIsAdmin = isAdmin()
+  const atLimit = !userIsAdmin && serviceCount >= 3
+  const [form, setForm] = useState({
+    name: '',
+    url: '',
+    check_interval_seconds: 60,
+    is_active: true
   })
   const [error, setError] = useState(null)
   const [loadingSubmit, setLoadingSubmit] = useState(false)
@@ -61,6 +65,28 @@ export function CreateServiceModal({ onClose, onSuccess }) {
           </button>
         </div>
 
+        {atLimit ? (
+          <div className="relative z-10 space-y-5">
+            <div className="flex flex-col items-center gap-4 py-6 px-2">
+              <div className="p-4 bg-border-subtle/40 rounded-2xl">
+                <Lock className="text-text-secondary" size={28} />
+              </div>
+              <div className="text-center">
+                <p className="text-text-primary font-bold text-base mb-1">{t('trial.serviceLimitTitle')}</p>
+                <p className="text-text-secondary text-xs leading-relaxed">{t('trial.serviceLimitDesc')}</p>
+                <p className="text-text-secondary text-[10px] mt-2">{serviceCount} {t('trial.servicesUsed')}</p>
+              </div>
+              <ContactAdminButton subject="Sentinel - Ampliar límite de servicios" className="mt-2" />
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full bg-border-subtle/30 text-text-secondary font-bold py-4 rounded-2xl text-sm transition-all hover:bg-border-subtle/60"
+            >
+              {t('confirm.cancel')}
+            </button>
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
           <div className="relative">
             <Server className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary" size={16} />
@@ -120,14 +146,15 @@ export function CreateServiceModal({ onClose, onSuccess }) {
             </div>
           )}
 
-          <button 
-            type="submit" 
-            disabled={loadingSubmit} 
+          <button
+            type="submit"
+            disabled={loadingSubmit}
             className="w-full bg-[#2ecc71] text-[#0f0f1a] font-black py-4 rounded-2xl hover:bg-[#27ae60] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 shadow-lg shadow-green-500/10 mt-2"
           >
             {loadingSubmit ? t('service.processing') : t('service.save')}
           </button>
         </form>
+        )}
       </div>
     </div>
   )

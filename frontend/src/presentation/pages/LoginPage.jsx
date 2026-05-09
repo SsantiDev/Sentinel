@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../application/hooks/useAuth'
 import { useTheme } from '../../application/context/ThemeContext'
 import { GalaxyBackground } from '../components/GalaxyBackground'
@@ -105,6 +105,17 @@ export function LoginPage() {
             {loading ? t('login.authenticating') : t('login.access')}
           </button>
         </form>
+
+
+        <div className="flex flex-col items-center gap-2 mt-6">
+          <Link to="/forgot-password" className="text-xs text-text-secondary hover:text-[#2ecc71] transition-colors">
+            {t('login.forgotPassword')}
+          </Link>
+          <p className="text-xs text-text-secondary">
+            {t('login.noAccount')}{' '}
+            <Link to="/register" className="text-[#2ecc71] hover:underline font-semibold">{t('login.register')}</Link>
+          </p>
+        </div>
       </div>
     </div>
   )
