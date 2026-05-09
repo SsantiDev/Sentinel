@@ -16,6 +16,9 @@
     "user_preferences": {
         "prueba": {
             "session_timeout_minutes": 1
+        },
+        "admin": {
+            "session_timeout_minutes": 48
         }
     }
 }

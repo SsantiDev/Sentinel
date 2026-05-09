@@ -2,6 +2,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.tokens import AccessToken
+from datetime import timedelta
 from infrastructure.config_manager import ConfigManager
 from interfaces.http.serializers import SentinelTokenObtainPairSerializer
 
@@ -13,7 +15,9 @@ class GlobalConfigView(APIView):
 
     def get(self, request):
         config = ConfigManager.get_config()
-        return Response(config)
+        user_prefs = ConfigManager.get_user_config(request.user.username)
+        merged = {**config, 'security': {**config['security'], 'session_timeout_minutes': user_prefs.get('session_timeout_minutes', config['security']['session_timeout_minutes'])}}
+        return Response(merged)
 
     def patch(self, request):
         section = request.data.get('section')
@@ -78,4 +82,12 @@ class ProfileUpdateView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-        return Response({"message": "Profile updated successfully"})
+        response_data = {"message": "Profile updated successfully"}
+        if session_timeout is not None:
+            access = AccessToken.for_user(user)
+            access['username'] = user.username
+            access['is_staff'] = user.is_staff
+            access.set_exp(lifetime=timedelta(minutes=timeout_val))
+            response_data['access'] = str(access)
+
+        return Response(response_data)
