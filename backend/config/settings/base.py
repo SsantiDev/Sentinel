@@ -20,6 +20,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'django_extensions',
+    'anymail',
     'infrastructure',
 ]
 
@@ -104,6 +105,9 @@ EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = env('ALERT_EMAIL_FROM', default='alerts@sentinel.local')
 ALERT_EMAIL_RECIPIENTS = env.list('ALERT_EMAIL_RECIPIENTS', default=[])
 SLACK_WEBHOOK_URL = env('SLACK_WEBHOOK_URL', default='')
+ANYMAIL = {
+    "RESEND_API_KEY": env('RESEND_API_KEY', default=''),
+}
 
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
