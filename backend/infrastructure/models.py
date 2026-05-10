@@ -36,7 +36,7 @@ class AlertRuleModel(models.Model):
     condition = models.CharField(max_length=30, choices=CONDITION_CHOICES)
     threshold = models.FloatField(help_text='Failures count or ms value')
     channel = models.CharField(max_length=20, choices=CHANNEL_CHOICES, default='email')
-    contact = models.CharField(max_length=255, help_text='Email address')
+    contact = models.CharField(max_length=255, help_text='Email address', blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
