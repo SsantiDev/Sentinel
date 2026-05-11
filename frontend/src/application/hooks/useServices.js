@@ -22,9 +22,9 @@ export function useServices() {
     }
   }, [])
 
-  useEffect(() => { 
+  useEffect(() => {
     // If we already have cached data, fetch silently in the background
-    fetch(!!servicesCache) 
+    fetch(!!servicesCache)
   }, [fetch])
 
   const toggleService = useCallback(async (id, currentStatus) => {
@@ -42,7 +42,39 @@ export function useServices() {
     }
   }, [])
 
+  const deleteService = useCallback(async (id) => {
+    setError(null)
+    try {
+      await apiClient.delete(`/services/${id}/`)
+      setServices(prev => {
+        const updated = prev.filter(s => s.id !== id)
+        servicesCache = updated
+        return updated
+      })
+    } catch (e) {
+      setError(e.message)
+      console.error('Error deleting service:', e)
+    }
+  }, [])
+
+  const updateService = useCallback(async (id, updates) => {
+    setError(null)
+    try {
+      const { data } = await apiClient.patch(`/services/${id}/`, updates)
+      setServices(prev => {
+        const updated = prev.map(s => s.id === id ? { ...s, ...data } : s)
+        servicesCache = updated
+        return updated
+      })
+      return data
+    } catch (e) {
+      setError(e.message)
+      console.error('Error updating service:', e)
+      throw e
+    }
+  }, [])
+
   const silentRefetch = useCallback(() => fetch(true), [fetch])
 
-  return { services, loading, error, refetch: fetch, silentRefetch, toggleService }
+  return { services, loading, error, refetch: fetch, silentRefetch, toggleService, deleteService, updateService }
 }
