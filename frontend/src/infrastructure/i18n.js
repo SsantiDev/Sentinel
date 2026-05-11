@@ -160,13 +160,17 @@ const resources = {
       service: {
         newService: 'Nuevo Servicio',
         newServiceDesc: 'Configura un nuevo endpoint para monitoreo',
+        editService: 'Editar Servicio',
+        editServiceDesc: 'Actualiza nombre y URL del servicio',
         namePlaceholder: 'Nombre del servicio (ej: API Principal)',
         urlPlaceholder: 'URL (https://example.com/api)',
         intervalPlaceholder: 'Intervalo en segundos (min 10s)',
         activateMonitoring: 'Activar monitoreo',
         createError: 'Error al crear el servicio',
+        updateError: 'Error al actualizar el servicio',
         processing: 'Procesando...',
         save: 'Guardar Servicio',
+        saveChanges: 'Guardar Cambios',
       },
       confirm: {
         defaultTitle: '¿Confirmar acción?',
@@ -175,6 +179,8 @@ const resources = {
         cancel: 'Cancelar',
         deleteRule: '¿Eliminar regla?',
         deleteRuleMessage: 'Esta regla de alerta dejará de funcionar inmediatamente. No podrás recuperar esta configuración.',
+        deleteService: '¿Eliminar servicio?',
+        deleteServiceMessage: 'Este servicio dejará de ser monitoreado y se eliminará de forma permanente.',
         deletePermanently: 'Eliminar permanentemente',
       },
       login: {
@@ -432,13 +438,17 @@ const resources = {
       service: {
         newService: 'New Service',
         newServiceDesc: 'Configure a new endpoint for monitoring',
+        editService: 'Edit Service',
+        editServiceDesc: 'Update service name and URL',
         namePlaceholder: 'Service name (e.g. Main API)',
         urlPlaceholder: 'URL (https://example.com/api)',
         intervalPlaceholder: 'Interval in seconds (min 10s)',
         activateMonitoring: 'Activate monitoring',
         createError: 'Error creating service',
+        updateError: 'Error updating service',
         processing: 'Processing...',
         save: 'Save Service',
+        saveChanges: 'Save Changes',
       },
       confirm: {
         defaultTitle: 'Confirm action?',
@@ -447,6 +457,8 @@ const resources = {
         cancel: 'Cancel',
         deleteRule: 'Delete rule?',
         deleteRuleMessage: 'This alert rule will stop working immediately. You cannot recover this configuration.',
+        deleteService: 'Delete service?',
+        deleteServiceMessage: 'This service will stop being monitored and will be deleted permanently.',
         deletePermanently: 'Delete permanently',
       },
       login: {
