@@ -4,17 +4,21 @@ import { Plus, Search, Layers } from 'lucide-react'
 import { useServices } from '../../application/hooks/useServices'
 import { ServiceCard } from '../components/ServiceCard'
 import { CreateServiceModal } from '../components/CreateServiceModal'
+import { EditServiceModal } from '../components/EditServiceModal'
 import { SummaryCards } from '../components/SummaryCards'
 import { SkeletonCard, SkeletonSummary } from '../components/SkeletonCard'
 import { ContactAdminButton } from '../components/ContactAdminButton'
+import { ConfirmModal } from '../components/ConfirmModal'
 import { useTranslation } from 'react-i18next'
 import { isAdmin } from '../../infrastructure/authStorage'
 
 export function DashboardPage() {
   const { t } = useTranslation()
-  const { services, loading, error, refetch, silentRefetch, toggleService } = useServices()
+  const { services, loading, error, refetch, silentRefetch, toggleService, deleteService, updateService } = useServices()
   const [showModal, setShowModal] = useState(false)
   const [search, setSearch] = useState('')
+  const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, id: null })
+  const [editModal, setEditModal] = useState({ isOpen: false, service: null })
   const userIsAdmin = isAdmin()
   const atServiceLimit = !userIsAdmin && services.length >= 3
 
@@ -24,8 +28,8 @@ export function DashboardPage() {
   }, [silentRefetch])
 
   const filteredServices = services
-    .filter(s => 
-      s.name.toLowerCase().includes(search.toLowerCase()) || 
+    .filter(s =>
+      s.name.toLowerCase().includes(search.toLowerCase()) ||
       s.url.toLowerCase().includes(search.toLowerCase())
     )
     .sort((a, b) => {
@@ -37,7 +41,7 @@ export function DashboardPage() {
   return (
     <div className="w-full">
       <div className="flex flex-col md:flex-row md:items-center justify-end gap-6 mb-10">
-        
+
         <div className="flex items-center gap-3">
           <div className="relative group">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-[#2ecc71] transition-colors" size={18} />
@@ -71,7 +75,7 @@ export function DashboardPage() {
           <p className="font-medium">{error}</p>
         </div>
       )}
-      
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {loading ? (
           [...Array(8)].map((_, i) => <SkeletonCard key={i} />)
@@ -83,7 +87,12 @@ export function DashboardPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.05 }}
             >
-              <ServiceCard service={s} onToggle={toggleService} />
+              <ServiceCard
+                service={s}
+                onToggle={toggleService}
+                onDelete={(id) => setConfirmDelete({ isOpen: true, id })}
+                onEdit={(service) => setEditModal({ isOpen: true, service })}
+              />
             </motion.div>
           ))
         ) : (
@@ -96,6 +105,26 @@ export function DashboardPage() {
       </div>
 
       {showModal && <CreateServiceModal onClose={() => setShowModal(false)} onSuccess={refetch} serviceCount={services.length} />}
+
+      {editModal.isOpen && editModal.service && (
+        <EditServiceModal
+          service={editModal.service}
+          onClose={() => setEditModal({ isOpen: false, service: null })}
+          onSave={(updates) => updateService(editModal.service.id, updates)}
+        />
+      )}
+
+      <ConfirmModal
+        isOpen={confirmDelete.isOpen}
+        onClose={() => setConfirmDelete({ isOpen: false, id: null })}
+        onConfirm={() => {
+          if (confirmDelete.id != null) deleteService(confirmDelete.id)
+        }}
+        title={t('confirm.deleteService')}
+        message={t('confirm.deleteServiceMessage')}
+        confirmText={t('confirm.deletePermanently')}
+        variant="danger"
+      />
     </div>
   )
 }
