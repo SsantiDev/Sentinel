@@ -15,14 +15,15 @@ export function useServiceDetail(id) {
       ])
       setService(svc.data)
       setHistory(hist.data)
+      return { service: svc.data, history: hist.data }
     } finally {
       if (!silent) setLoading(false)
     }
   }, [id])
 
-  useEffect(() => { 
+  useEffect(() => {
     if (id && id !== 'undefined') {
-      fetch() 
+      fetch()
     }
   }, [fetch, id])
 
@@ -39,8 +40,28 @@ export function useServiceDetail(id) {
   }
 
   const ping = async () => {
+    if (!id) return
+    const previousCheckedAt = history?.[0]?.checked_at || null
     await apiClient.post(`/services/${id}/ping/`)
-    await fetch(true)
+
+    const maxWaitMs = 15000
+    const intervalMs = 1000
+    let elapsed = 0
+
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
+    const hasNewEntry = async () => {
+      const result = await fetch(true)
+      const latestCheckedAt = result?.history?.[0]?.checked_at || null
+      return latestCheckedAt && latestCheckedAt !== previousCheckedAt
+    }
+
+    if (await hasNewEntry()) return
+
+    while (elapsed < maxWaitMs) {
+      await sleep(intervalMs)
+      elapsed += intervalMs
+      if (await hasNewEntry()) return
+    }
   }
 
   return { service, history, loading, ping, toggleStatus }
