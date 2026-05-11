@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import apiClient from '../../infrastructure/apiClient'
 
@@ -35,7 +35,11 @@ export function useHistory() {
 
   const page = Number(searchParams.get('page') || '1')
   const pageSize = Number(searchParams.get('page_size') || '10')
-  const filters = paramsToFilters(searchParams)
+  const searchKey = searchParams.toString()
+  const filters = useMemo(
+    () => paramsToFilters(new URLSearchParams(searchKey)),
+    [searchKey]
+  )
 
   const [firstLoad, setFirstLoad] = useState(true)
 
@@ -82,7 +86,7 @@ export function useHistory() {
       setLoading(false)
       setFirstLoad(false)
     }
-  }, [filters, page, pageSize])
+  }, [filters, page, pageSize, firstLoad])
 
   useEffect(() => { fetch() }, [fetch])
 
