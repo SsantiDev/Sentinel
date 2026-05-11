@@ -6,6 +6,33 @@ import { useSettings } from '../../application/hooks/useSettings'
 import { ConfirmModal } from '../components/ConfirmModal'
 import { useTranslation } from 'react-i18next'
 
+function AlertsSkeleton() {
+  return (
+    <div className="space-y-4">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div
+          key={i}
+          className="bg-bg-card border border-border-subtle rounded-[2rem] px-8 py-6 flex items-center gap-6 animate-pulse"
+        >
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="h-4 w-40 bg-border-subtle/60 rounded-full" />
+              <div className="h-3 w-16 bg-border-subtle/40 rounded-full" />
+            </div>
+            <div className="h-3 w-72 bg-border-subtle/40 rounded-full" />
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-12 bg-border-subtle/50 rounded-full" />
+            <div className="w-[1px] h-8 bg-border-subtle/60 mx-2" />
+            <div className="h-10 w-10 bg-border-subtle/50 rounded-xl" />
+            <div className="h-10 w-10 bg-border-subtle/50 rounded-xl" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function RuleModal({ services, onClose, onSave, initialData = null }) {
   const { t } = useTranslation()
   const { config } = useSettings()
@@ -33,9 +60,9 @@ function RuleModal({ services, onClose, onSave, initialData = null }) {
     e.preventDefault()
     setSaving(true)
     try {
-      const dataToSave = { 
-        ...form, 
-        contact: useDefault ? '' : form.contact 
+      const dataToSave = {
+        ...form,
+        contact: useDefault ? '' : form.contact
       }
       await onSave(dataToSave)
       onClose()
@@ -182,11 +209,7 @@ export function AlertsPage() {
       </div>
 
       {loading ? (
-        <div className="space-y-4">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-20 bg-bg-card/50 border border-border-subtle rounded-[2rem] animate-pulse" />
-          ))}
-        </div>
+        <AlertsSkeleton />
       ) : rules.length === 0 ? (
         <div className="bg-bg-card border border-border-subtle rounded-[3rem] p-16 flex flex-col items-center text-center max-w-2xl mx-auto mt-16 shadow-2xl">
           <div className="bg-red-500/10 p-8 rounded-[2.5rem] mb-8">
@@ -217,12 +240,12 @@ export function AlertsPage() {
                   )}
                 </div>
                 <p className="text-text-secondary text-sm font-medium opacity-80">
-                  {CONDITION_LABELS[rule.condition]} <span className="text-[#2ecc71]">›</span> {rule.threshold} 
+                  {CONDITION_LABELS[rule.condition]} <span className="text-[#2ecc71]">›</span> {rule.threshold}
                   <span className="mx-2 opacity-30">|</span>
                   <span className="text-text-primary/60">{rule.contact || t('alerts.globalDefault') || 'Email Global'}</span>
                 </p>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => toggleRule(rule)}
