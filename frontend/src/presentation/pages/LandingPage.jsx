@@ -1,8 +1,7 @@
-import { Link, Navigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { GalaxyBackground } from '../components/GalaxyBackground'
 import { DemoChecker } from '../components/DemoChecker'
 import { useTheme } from '../../application/context/ThemeContext'
-import { getToken } from '../../infrastructure/authStorage'
 import logo from '../../assets/logo.png'
 
 const FEATURES = [
@@ -50,8 +49,6 @@ const PLAN_PRO = [
 
 export function LandingPage() {
   const { isDark, toggleTheme } = useTheme()
-
-  if (getToken()) return <Navigate to="/dashboard" replace />
 
   return (
     <div className="min-h-screen" style={{ color: 'var(--text-primary)' }}>
