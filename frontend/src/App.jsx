@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { ThemeProvider } from './application/context/ThemeContext'
+import { LandingPage } from './presentation/pages/LandingPage'
 import { LoginPage } from './presentation/pages/LoginPage'
 import { DashboardPage } from './presentation/pages/DashboardPage'
 import { ServiceDetailPage } from './presentation/pages/ServiceDetailPage'
@@ -33,7 +34,7 @@ export default function App() {
       <SessionWatcher />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
