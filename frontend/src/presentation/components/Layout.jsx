@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { GalaxyBackground } from './GalaxyBackground'
 import { SessionTimer } from './SessionTimer'
+import { SessionWatcher } from './SessionWatcher'
 
 export function Layout({ children }) {
   const location = useLocation()
@@ -10,6 +11,7 @@ export function Layout({ children }) {
   return (
     <div className="dark flex h-screen bg-bg-main text-text-primary transition-colors duration-300 overflow-hidden relative">
       <GalaxyBackground interactive={false} subtle={true} />
+      <SessionWatcher />
       <Sidebar />
       <SessionTimer />
       <main className="flex-1 h-full overflow-y-auto custom-scrollbar pb-20 md:pb-0 relative z-10">
