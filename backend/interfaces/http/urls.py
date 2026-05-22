@@ -4,6 +4,7 @@ from interfaces.http.views.service_views import ServiceViewSet, CheckResultViewS
 from interfaces.http.views.config_views import GlobalConfigView, ProfileUpdateView
 from interfaces.http.views.user_views import UserViewSet
 from interfaces.http.views.security_views import BlockedIPViewSet
+from interfaces.http.views.public_views import PublicCheckView
 
 router = DefaultRouter()
 router.register('services', ServiceViewSet, basename='service')
@@ -16,4 +17,5 @@ urlpatterns = [
     path('', include(router.urls)),
     path('settings/global/', GlobalConfigView.as_view(), name='global-settings'),
     path('settings/profile/password/', ProfileUpdateView.as_view(), name='profile-password'),
+    path('public/check/', PublicCheckView.as_view(), name='public-check'),
 ]
