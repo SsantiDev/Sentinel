@@ -1,10 +1,17 @@
+from dataclasses import asdict
+from datetime import datetime
+
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from infrastructure.models import ServiceModel, CheckResultModel, AlertRuleModel
+from infrastructure.repositories.service_repository import DjangoServiceRepository
 from interfaces.http.serializers.service_serializer import ServiceSerializer, CheckResultSerializer, AlertRuleSerializer
 from infrastructure.tasks.ping_tasks import ping_service_task
+from application.use_cases.calculate_service_stats import calculate_service_stats, find_check_by_timestamp_binary
+from application.use_cases.find_incident_start import find_incident_start
+from application.use_cases.predict_latency_trend import predict_latency_trend
 
 
 class CheckPagination(PageNumberPagination):
@@ -40,6 +47,56 @@ class ServiceViewSet(viewsets.ModelViewSet):
     def history(self, request, pk=None):
         results = CheckResultModel.objects.filter(service_id=pk, service__owner=request.user)[:50]
         return Response(CheckResultSerializer(results, many=True).data)
+
+    @action(detail=True, methods=['get'])
+    def stats(self, request, pk=None):
+        service = self.get_object()
+        repo = DjangoServiceRepository()
+        result = calculate_service_stats(service.id, repo)
+        data = asdict(result)
+
+        at_param = request.query_params.get('at')
+        if at_param:
+            checks = repo.get_checks_for_service(service.id, limit=500)
+            nearest, operations = find_check_by_timestamp_binary(checks, datetime.fromisoformat(at_param))
+            data['nearest_check'] = {
+                'checked_at': nearest.checked_at.isoformat() if nearest else None,
+                'status': nearest.status.value if nearest else None,
+                'search_operations': operations,
+            }
+
+        return Response(data)
+
+    @action(detail=True, methods=['get'])
+    def incidents(self, request, pk=None):
+        service = self.get_object()
+        repo = DjangoServiceRepository()
+        incident = find_incident_start(service.id, repo)
+        if not incident:
+            return Response({'active_incident': False})
+
+        return Response({
+            'active_incident': True,
+            'started_at': incident.start_check.checked_at.isoformat(),
+            'is_ongoing': incident.is_ongoing,
+            'search_operations': incident.operations_count,
+        })
+
+    @action(detail=True, methods=['get'])
+    def trend(self, request, pk=None):
+        service = self.get_object()
+        repo = DjangoServiceRepository()
+        critical_ms = float(request.query_params.get('critical_ms', 2000))
+        trend = predict_latency_trend(service.id, repo, critical_threshold_ms=critical_ms)
+        if not trend:
+            return Response({'has_data': False})
+
+        return Response({
+            'has_data': True,
+            'slope_ms_per_check': trend.slope_ms_per_check,
+            'is_degrading': trend.is_degrading,
+            'predicted_checks_to_breach': trend.predicted_checks_to_breach,
+        })
 
 
 class CheckResultViewSet(viewsets.ReadOnlyModelViewSet):
