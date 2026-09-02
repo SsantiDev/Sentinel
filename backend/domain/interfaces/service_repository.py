@@ -21,3 +21,6 @@ class IServiceRepository(ABC):
 
     @abstractmethod
     def get_consecutive_failures(self, service_id: int) -> int: ...
+
+    @abstractmethod
+    def get_checks_for_service(self, service_id: int, limit: Optional[int] = None) -> List[CheckResult]: ...
