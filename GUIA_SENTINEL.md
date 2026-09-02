@@ -91,13 +91,17 @@ ping_service(id, repo, notifier)  ← Use case puro
 
 ### Requisitos previos
 - Docker Desktop instalado y corriendo
-- Archivo `.env` configurado (copia `.env.example` y llena los valores)
+- Archivo `backend/.env` configurado (copia `backend/.env.example`; los valores de `DATABASE_URL`/`REDIS_URL` ya apuntan a los servicios del compose, no hace falta tocarlos para desarrollo local — solo generar un `SECRET_KEY` propio)
+- Node.js 22+ instalado (para el frontend, que **no** corre dentro de Docker en desarrollo)
 
-### Comandos
+### Comandos — Backend (Docker)
 
 ```bash
-# Levantar todo
-docker compose up --build
+# Levantar todo (primera vez o tras cambios en Dockerfile/deps)
+docker compose up -d --build
+
+# Primera vez únicamente: crear el schema de la base de datos
+docker compose exec web python manage.py migrate
 
 # Verificar que todos los contenedores están healthy
 docker compose ps
@@ -110,12 +114,32 @@ docker compose logs beat --tail=30
 docker compose logs worker --tail=30
 docker compose logs web --tail=30
 
-# Bajar todo
+# Bajar todo (la DB en el volumen sentinel_postgres_data no se borra)
 docker compose down
 
-# Bajar y borrar volúmenes (borra la DB)
+# Bajar y borrar volúmenes (esto sí borra la DB)
 docker compose down -v
 ```
+
+### Comandos — Frontend (terminal aparte, sin Docker)
+
+```bash
+cd frontend
+npm install   # solo la primera vez
+npm run dev
+```
+
+Vite corre en `http://localhost:5173` con proxy automático `/api` → `http://localhost:8000` (config en `vite.config.js`), así que el backend de Docker debe estar arriba primero.
+
+### Desarrollo local sin credenciales SMTP
+
+El `.env.example` trae `SMTP_USER`/`SMTP_PASSWORD` vacíos — sin eso, el registro por email (código OTP) **no llega**, la tarea Celery falla en `worker`. Para desarrollar sin configurar SMTP real, creá un superusuario directo y saltate el flujo de registro/verificación:
+
+```bash
+docker compose exec web python manage.py createsuperuser
+```
+
+Con esas credenciales logueás directo en `http://localhost:5173/login`. El usuario queda en el volumen `sentinel_postgres_data`, sobrevive a reinicios de los contenedores.
 
 ### Estado esperado al levantar
 
