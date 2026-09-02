@@ -29,6 +29,7 @@ class CheckResult:
     status_code: Optional[int]
     error_message: Optional[str]
     checked_at: datetime = field(default_factory=datetime.utcnow)
+    id: Optional[int] = None
 
 
 @dataclass
