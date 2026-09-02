@@ -278,6 +278,16 @@ const resources = {
       common: {
         contactAdmin: 'Contactar admin',
       },
+      serviceDetail: {
+        incidentActive: 'Incidente activo',
+        incidentSince: 'Caído desde hace {{time}}',
+        minutesAgo: '{{count}} minuto',
+        minutesAgo_other: '{{count}} minutos',
+        hoursAgo: '{{count}} hora',
+        hoursAgo_other: '{{count}} horas',
+        latencyTrend: 'Tendencia de Latencia',
+        breachIn: 'Cruzará el umbral crítico en ~{{count}} checks',
+      },
     },
   },
   en: {
@@ -555,6 +565,16 @@ const resources = {
       },
       common: {
         contactAdmin: 'Contact admin',
+      },
+      serviceDetail: {
+        incidentActive: 'Active incident',
+        incidentSince: 'Down for {{time}}',
+        minutesAgo: '{{count}} minute',
+        minutesAgo_other: '{{count}} minutes',
+        hoursAgo: '{{count}} hour',
+        hoursAgo_other: '{{count}} hours',
+        latencyTrend: 'Latency Trend',
+        breachIn: 'Will cross critical threshold in ~{{count}} checks',
       },
     },
   },

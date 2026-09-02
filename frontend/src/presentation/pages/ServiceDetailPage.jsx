@@ -2,9 +2,13 @@ import { memo, useDeferredValue, useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, RefreshCw, Clock, Search, ChevronDown, ChevronUp, Power } from 'lucide-react'
 import { useServiceDetail } from '../../application/hooks/useServiceDetail'
+import { useServiceAnalytics } from '../../application/hooks/useServiceAnalytics'
 import { StatusBadge } from '../components/StatusBadge'
 import { LatencyChart } from '../components/LatencyChart'
 import { StatusTimeline } from '../components/StatusTimeline'
+import { ReliabilityBadge } from '../components/ReliabilityBadge'
+import { IncidentBanner } from '../components/IncidentBanner'
+import { TrendIndicator } from '../components/TrendIndicator'
 import { cn } from '../../infrastructure/utils'
 
 function ServiceDetailSkeleton() {
@@ -197,6 +201,7 @@ export function ServiceDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { service, history, loading, ping, toggleStatus } = useServiceDetail(id)
+  const { stats: analyticsStats, incident, trend } = useServiceAnalytics(id)
 
   const [isPinging, setIsPinging] = useState(false)
   const [isToggling, setIsToggling] = useState(false)
@@ -253,6 +258,7 @@ export function ServiceDetailPage() {
             <div className="flex items-center gap-3 mb-1">
               <h2 className="text-text-primary text-2xl font-black tracking-tight">{service.name}</h2>
               <StatusBadge status={service.is_active ? service.status : 'inactive'} />
+              <ReliabilityBadge tier={analyticsStats?.reliability_tier} />
             </div>
             <p className="text-text-secondary text-xs font-mono opacity-80">{service.url}</p>
           </div>
@@ -292,8 +298,10 @@ export function ServiceDetailPage() {
         </div>
       </div>
 
+      <IncidentBanner incident={incident} />
+
       {/* Stats Bento Box */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-bg-card border border-border-subtle p-5 rounded-3xl">
           <p className="text-text-secondary text-[10px] uppercase font-black tracking-widest mb-2">Uptime</p>
           <p className="text-green-500 font-black text-2xl tracking-tighter">{stats?.uptime || '100'}%</p>
@@ -306,6 +314,7 @@ export function ServiceDetailPage() {
           <p className="text-text-secondary text-[10px] uppercase font-black tracking-widest mb-2">Frecuencia</p>
           <p className="text-blue-500 font-black text-2xl tracking-tighter">{service.check_interval_seconds}s</p>
         </div>
+        <TrendIndicator trend={trend} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
