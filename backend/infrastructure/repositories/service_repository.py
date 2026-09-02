@@ -57,6 +57,15 @@ class DjangoServiceRepository(IServiceRepository):
                 break
         return count
 
+    def get_checks_for_service(self, service_id: int, limit: Optional[int] = None) -> List[CheckResult]:
+        # Orden ascendente por checked_at: lo requieren busqueda binaria, biseccion y regresion.
+        if limit:
+            recent = CheckResultModel.objects.filter(service_id=service_id).order_by('-checked_at')[:limit]
+            models = list(reversed(recent))
+        else:
+            models = list(CheckResultModel.objects.filter(service_id=service_id).order_by('checked_at'))
+        return [self._to_check_result_entity(m) for m in models]
+
     def _to_entity(self, m: ServiceModel) -> Service:
         return Service(
             id=m.pk,
@@ -65,6 +74,17 @@ class DjangoServiceRepository(IServiceRepository):
             check_interval_seconds=m.check_interval_seconds,
             is_active=m.is_active,
             created_at=m.created_at,
+        )
+
+    def _to_check_result_entity(self, m: CheckResultModel) -> CheckResult:
+        return CheckResult(
+            id=m.pk,
+            service_id=m.service_id,
+            status=ServiceStatus(m.status),
+            response_time_ms=m.response_time_ms,
+            status_code=m.status_code,
+            error_message=m.error_message,
+            checked_at=m.checked_at,
         )
 
     def _to_alert_rule_entity(self, m: AlertRuleModel) -> AlertRule:
