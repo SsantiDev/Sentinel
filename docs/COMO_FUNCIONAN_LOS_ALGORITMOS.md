@@ -43,6 +43,8 @@ Cuando abrís la pantalla de detalle de un sitio, siempre ocurre lo mismo:
 2. La pantalla le pide al servidor **tres cosas al mismo tiempo**: las estadísticas, si hay
    una caída en curso, y si el sitio se está poniendo lento.
    `frontend/src/application/hooks/useServiceAnalytics.js:14`
+   (El recorrido por el código de ese pedido está más abajo, en
+   «Cómo la pantalla pide los datos».)
 3. Los tres pedidos entran al servidor por el mismo lugar.
    `backend/interfaces/http/views/service_views.py:23`
 4. El servidor busca en la base de datos las últimas revisiones del sitio y las entrega
@@ -54,6 +56,81 @@ Cuando abrís la pantalla de detalle de un sitio, siempre ocurre lo mismo:
    (Cada cálculo vive en su propio archivo dentro de `backend/application/use_cases/`.)
 6. El cálculo devuelve un resultado chico: un número, una etiqueta o una fecha.
 7. Ese resultado vuelve a la pantalla y aparece como un recuadro, una etiqueta o un aviso.
+
+---
+
+## Cómo la pantalla pide los datos (recorrido por el código)
+
+Tres archivos, tres roles. Cada uno vive en su capa y solo le habla al de al lado:
+
+- **La pantalla** — `frontend/src/presentation/pages/ServiceDetailPage.jsx` (capa
+  *presentation*). Solo dibuja.
+- **El ayudante** (*hook*) — `frontend/src/application/hooks/useServiceAnalytics.js` (capa
+  *application*). Pide los datos, los guarda y avisa cuando llegaron.
+- **El cartero** — `frontend/src/infrastructure/apiClient.js` (capa *infrastructure*). Lo
+  único que manda y recibe pedidos del servidor.
+
+La pantalla le pide al ayudante; el ayudante le pide al cartero; el cartero le pide al
+servidor. Nadie se saltea a nadie.
+
+### El recorrido, línea por línea
+
+Rutas relativas a `frontend/src/`. Cada paso dice qué línea actúa y a quién llama.
+
+1. **`presentation/pages/ServiceDetailPage.jsx:201`** — saca el número del sitio de la
+   dirección del navegador: `/services/42` deja `id` en `42`.
+2. **`presentation/pages/ServiceDetailPage.jsx:204`** — la pantalla llama al ayudante con
+   ese número: `useServiceAnalytics(id)`. Acá la pantalla ya no hace nada más hasta que
+   lleguen los datos.
+3. **`application/hooks/useServiceAnalytics.js:27`** — apenas la pantalla aparece, el
+   disparador (`useEffect`) corre solo y llama a la función de carga (línea 28).
+4. **`application/hooks/useServiceAnalytics.js:11`** — la función de carga primero revisa
+   el número; si todavía no sirve, corta acá sin pedir nada.
+5. **`application/hooks/useServiceAnalytics.js:12`** — enciende el cartel interno de
+   "cargando".
+6. **`application/hooks/useServiceAnalytics.js:14`** — manda los tres pedidos a la vez
+   (`Promise.all`): estadísticas (línea 15), caída en curso (línea 16), tendencia
+   (línea 17). Cada una le pasa una dirección al cartero (`apiClient.get`).
+7. **`infrastructure/apiClient.js:6`** — antes de soltar cada pedido, el cartero le pega
+   adelante la parte fija de la dirección (`/api/v1`, definida en la línea 4) y le adjunta
+   tu credencial (`Authorization: Bearer <token>`).
+8. **`infrastructure/apiClient.js:15-17`** — si el servidor rechaza la credencial (sesión
+   vencida), el cartero corta todo y te manda al inicio de sesión.
+9. *El servidor responde. Ese lado está en las secciones de cada cálculo, más abajo.*
+10. **`application/hooks/useServiceAnalytics.js:19-21`** — vuelven las tres respuestas; el
+    ayudante guarda cada una en su cajón (`setStats`, `setIncident`, `setTrend`).
+11. **`application/hooks/useServiceAnalytics.js:23`** — apaga el cartel de "cargando".
+12. **`application/hooks/useServiceAnalytics.js:31`** — el ayudante le devuelve a la
+    pantalla el contenido de los tres cajones: `{ stats, incident, trend, loading, refetch }`.
+
+### La vuelta a la pantalla
+
+Guardar algo en un cajón (paso 10) hace que la pantalla se vuelva a ejecutar desde el
+principio (`ServiceDetailPage.jsx:200`). Esta vez los valores ya no llegan vacíos, y la
+pantalla se los pasa a los componentes que los muestran:
+
+| Línea | Valor que baja | Componente que lo dibuja |
+|-------|----------------|--------------------------|
+| `ServiceDetailPage.jsx:261` | `analyticsStats?.reliability_tier` | `ReliabilityBadge` |
+| `ServiceDetailPage.jsx:301` | `incident` | `IncidentBanner` |
+| `ServiceDetailPage.jsx:317` | `trend` | `TrendIndicator` |
+
+En el primer dibujado esos tres reciben "nada" y no muestran nada; aparecen recién cuando
+el ayudante llena los cajones y la pantalla se vuelve a ejecutar.
+
+### El segundo ayudante corre en paralelo
+
+`ServiceDetailPage.jsx:203` llama a otro hook, `useServiceDetail.js`, con el mismo
+recorrido: trae el sitio y su historial. Diferencia clave: su cartel de "cargando"
+(`useServiceDetail.js:10`) es el único que frena la pantalla — decide si se ve el esqueleto
+gris o el detalle completo (`ServiceDetailPage.jsx:240`). El "cargando" de
+`useServiceAnalytics` no frena nada: sus datos entran cuando pueden.
+
+### Si abrís otro sitio
+
+Cambia el número en la dirección → cambia `id` → `useServiceAnalytics.js:25` marca la
+función de carga como nueva → el disparador de la línea 27 la vuelve a correr con el sitio
+nuevo. Sin apretar nada.
 
 ---
 
