@@ -81,6 +81,9 @@ class CheckResultModel(models.Model):
     class Meta:
         db_table = 'check_results'
         ordering = ['-checked_at']
+        indexes = [
+            models.Index(fields=['service', '-checked_at'], name='check_results_svc_at_idx'),
+        ]
 
 
 class BlockedIPModel(models.Model):

@@ -43,3 +43,18 @@ def test_operations_count_is_logarithmic():
     incident = find_incident_start(1, repo)
 
     assert incident.operations_count <= 5  # log2(16) ~ 4
+
+
+def test_incident_longer_than_window_reports_window_start_not_real_start():
+    # Precondicion documentada en docs/PRUEBA_ALGORITMOS.md punto 2: si la caida
+    # empezo antes de la ventana que trae get_checks_for_service (window=200 por
+    # defecto), la biseccion no puede verlo y reporta el primer check de la
+    # ventana como inicio, aunque el incidente real haya empezado antes.
+    repo = MagicMock()
+    checks = _make_checks([ServiceStatus.DOWN] * 200)  # toda la ventana caida
+    repo.get_checks_for_service.return_value = checks
+
+    incident = find_incident_start(1, repo)
+
+    assert incident.start_check == checks[0]
+    assert incident.is_ongoing is True

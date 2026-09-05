@@ -42,3 +42,13 @@ def test_binary_and_linear_search_agree_on_result():
     linear_result, linear_ops = find_check_by_timestamp_linear(checks, target)
     assert binary_result.checked_at == linear_result.checked_at == target
     assert binary_ops < linear_ops
+
+
+def test_binary_search_stays_logarithmic_at_full_window():
+    # window real usado por calculate_service_stats (ver default window=500)
+    checks = _make_checks([ServiceStatus.UP] * 500)
+    target = checks[250].checked_at
+    _, binary_ops = find_check_by_timestamp_binary(checks, target)
+    _, linear_ops = find_check_by_timestamp_linear(checks, target)
+    assert binary_ops <= 10  # log2(500) ~ 9
+    assert linear_ops == 500  # peor caso: el target esta en el medio, escanea todo

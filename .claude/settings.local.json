@@ -46,7 +46,14 @@
       "Bash(sudo -S docker compose -f /home/spsp/Projects/Sentinel/Sentinel/docker-compose.yml exec db psql -U sentinel sentinel_db -c \"SELECT id, name, url, owner_id FROM services;\")",
       "Bash(sudo -S docker compose -f /home/spsp/Projects/Sentinel/Sentinel/docker-compose.yml exec db psql -U sentinel sentinel_db -c \"SELECT id, username, email, is_superuser FROM auth_user WHERE is_superuser = true;\")",
       "Bash(sudo -S docker compose -f /home/spsp/Projects/Sentinel/Sentinel/docker-compose.yml exec db psql -U sentinel sentinel_db -c \"UPDATE services SET owner_id = 1 WHERE owner_id IS NULL; SELECT id, name, owner_id FROM services;\")",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(git push *)",
+      "Bash(git stash *)",
+      "Bash(git checkout *)",
+      "Bash(ping -n 2 github.com)",
+      "Bash(xargs grep -l \"DATABASES\")",
+      "Bash(where.exe python *)",
+      "Bash(pip show *)"
     ]
   }
 }
