@@ -103,6 +103,7 @@ const resources = {
         page: 'Pág.',
         showing: 'Mostrando',
         of: 'de',
+        undo: 'Deshacer filtro',
       },
       settings: {
         profile: 'Perfil',
@@ -391,6 +392,7 @@ const resources = {
         page: 'Page',
         showing: 'Showing',
         of: 'of',
+        undo: 'Undo filter',
       },
       settings: {
         profile: 'Profile',

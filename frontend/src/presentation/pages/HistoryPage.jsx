@@ -1,6 +1,7 @@
-import { Search, CheckCircle2, XCircle, HelpCircle, Filter, ChevronLeft, ChevronRight, Download } from 'lucide-react'
+import { Search, CheckCircle2, XCircle, HelpCircle, Filter, Undo2, Download } from 'lucide-react'
 import { useHistory } from '../../application/hooks/useHistory'
 import { useServices } from '../../application/hooks/useServices'
+import { HistoryPagination } from '../components/HistoryPagination'
 import { useTranslation } from 'react-i18next'
 
 function StatusIcon({ status }) {
@@ -50,7 +51,7 @@ function exportCSV(checks) {
 
 export function HistoryPage() {
   const { t } = useTranslation()
-  const { checks, loading, total, page, pageSize, setPage, setPageSize, filters, setFilters } = useHistory()
+  const { checks, loading, total, page, pageSize, setPage, setPageSize, filters, setFilters, undoFilter, canUndo } = useHistory()
   const { services } = useServices()
 
   const totalPages = Math.ceil(total / pageSize) || 1
@@ -114,6 +115,16 @@ export function HistoryPage() {
   return (
     <div className="w-full">
       <div className="flex items-center justify-end gap-3 mb-8 flex-wrap">
+
+        <button
+          onClick={undoFilter}
+          disabled={!canUndo}
+          title={t('history.undo')}
+          className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border-subtle text-text-secondary text-sm hover:text-text-primary hover:border-[#2ecc71] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        >
+          <Undo2 size={14} />
+          {t('history.undo')}
+        </button>
 
         <button
           onClick={() => exportCSV(checks)}
@@ -246,68 +257,14 @@ export function HistoryPage() {
           </tbody>
         </table>
 
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-5 py-3 border-t border-border-subtle">
-            <span className="text-xs text-text-secondary tabular-nums">
-              {t('history.showing')} {from}–{to} {t('history.of')} {total} {t('history.totalRecords')}
-            </span>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPage(1)}
-                disabled={page === 1}
-                className="px-2 py-1 rounded-lg text-xs text-text-secondary hover:text-text-primary hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                «
-              </button>
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="p-1 rounded-lg text-text-secondary hover:text-text-primary hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNum
-                if (totalPages <= 5) {
-                  pageNum = i + 1
-                } else if (page <= 3) {
-                  pageNum = i + 1
-                } else if (page >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i
-                } else {
-                  pageNum = page - 2 + i
-                }
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => setPage(pageNum)}
-                    className={`w-8 h-8 rounded-lg text-xs transition-colors ${
-                      pageNum === page
-                        ? 'bg-[#2ecc71] text-black font-semibold'
-                        : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
-                )
-              })}
-              <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="p-1 rounded-lg text-text-secondary hover:text-text-primary hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronRight size={16} />
-              </button>
-              <button
-                onClick={() => setPage(totalPages)}
-                disabled={page === totalPages}
-                className="px-2 py-1 rounded-lg text-xs text-text-secondary hover:text-text-primary hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                »
-              </button>
-            </div>
-          </div>
-        )}
+        <HistoryPagination
+          page={page}
+          totalPages={totalPages}
+          from={from}
+          to={to}
+          total={total}
+          setPage={setPage}
+        />
       </div>
     </div>
   )

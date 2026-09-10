@@ -1,17 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import apiClient from '../../infrastructure/apiClient'
-
-const DEFAULT_FILTERS = {
-  service: '',
-  status: '',
-  min_latency: '',
-  max_latency: '',
-  status_code: '',
-  start_date: '',
-  end_date: '',
-  ordering: '-checked_at',
-}
+import { useFilterStack } from './useFilterStack'
 
 function paramsToFilters(params) {
   return {
@@ -26,8 +16,17 @@ function paramsToFilters(params) {
   }
 }
 
+function buildFilterParams(filterObj, pageSizeValue) {
+  const params = new URLSearchParams()
+  Object.entries(filterObj).forEach(([k, v]) => { if (v) params.set(k, v) })
+  params.set('page', '1')
+  if (pageSizeValue) params.set('page_size', String(pageSizeValue))
+  return params
+}
+
 export function useHistory() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const filterStack = useFilterStack()
 
   const [checks, setChecks] = useState([])
   const [loading, setLoading] = useState(true)
@@ -62,17 +61,19 @@ export function useHistory() {
   }, [setSearchParams])
 
   const setFilters = useCallback((updater) => {
+    filterStack.push(filters)
     setSearchParams(prev => {
       const current = paramsToFilters(prev)
       const next = typeof updater === 'function' ? updater(current) : updater
-      const params = new URLSearchParams()
-      Object.entries(next).forEach(([k, v]) => { if (v) params.set(k, v) })
-      params.set('page', '1')
-      const size = prev.get('page_size')
-      if (size) params.set('page_size', size)
-      return params
+      return buildFilterParams(next, prev.get('page_size'))
     }, { replace: true })
-  }, [setSearchParams])
+  }, [filters, filterStack, setSearchParams])
+
+  const undoFilter = useCallback(() => {
+    const previous = filterStack.pop()
+    if (!previous) return
+    setSearchParams(prev => buildFilterParams(previous, prev.get('page_size')), { replace: true })
+  }, [filterStack, setSearchParams])
 
   const fetch = useCallback(async () => {
     if (firstLoad) setLoading(true)
@@ -94,5 +95,6 @@ export function useHistory() {
     checks, loading, total, page, pageSize,
     setPage, setPageSize,
     filters, setFilters,
+    undoFilter, canUndo: filterStack.canUndo,
   }
 }
