@@ -1,4 +1,6 @@
-from typing import List, Optional
+from datetime import datetime
+from typing import List, Optional, Tuple
+from django.db.models import Max
 from domain.entities.service import Service, CheckResult, ServiceStatus, AlertRule
 from domain.interfaces.service_repository import IServiceRepository
 from infrastructure.models import ServiceModel, CheckResultModel, AlertRuleModel
@@ -65,6 +67,16 @@ class DjangoServiceRepository(IServiceRepository):
         else:
             models = list(CheckResultModel.objects.filter(service_id=service_id).order_by('checked_at'))
         return [self._to_check_result_entity(m) for m in models]
+
+    def get_scheduling_candidates(self) -> List[Tuple[int, Optional[datetime], int]]:
+        # (service_id, ultimo checked_at, intervalo) por servicio activo.
+        # Alimenta la cola de prioridad del turnero (select_due_checks).
+        rows = (
+            ServiceModel.objects.filter(is_active=True)
+            .annotate(last_checked_at=Max('checks__checked_at'))
+            .values_list('id', 'last_checked_at', 'check_interval_seconds')
+        )
+        return list(rows)
 
     def _to_entity(self, m: ServiceModel) -> Service:
         return Service(
