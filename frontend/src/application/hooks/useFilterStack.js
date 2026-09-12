@@ -10,7 +10,7 @@ const MAX_DEPTH = 20
  * pop: saca el ultimo apilado para volver a el. pop O(1).
  * El ultimo que entra es el primero que sale, igual que el boton deshacer.
  */
-export function useFilterStack() {
+export function useFilterStack() { 
   const stackRef = useRef([])
   const [depth, setDepth] = useState(0)
 
