@@ -15,23 +15,23 @@ def _percentile(sorted_values: List[float], pct: float) -> float:
 
 
 def calculate_service_stats(
-    service_id: int,
-    repo: IServiceRepository,
-    tier_a1: float = 80.0,
-    tier_d: float = 5.0,
-    tier_n: int = 4,
-    window: int = 500,
-) -> ServiceStats:
+    service_id: int, # ID DEL SERVICIO
+    repo: IServiceRepository, # REPOSITORIO 
+    tier_a1: float = 80.0, # UPTIME DESEADO 
+    tier_d: float = 5.0, # INCREMENTO 
+    tier_n: int = 4, # N UMBRALES 
+    window: int = 500, # LIMITE DE CHECKS 
+) -> ServiceStats: 
     checks = repo.get_checks_for_service(service_id, limit=window)
-    total = len(checks)
-    up_count = sum(1 for c in checks if c.status == ServiceStatus.UP)
-    uptime_pct = (up_count / total * 100) if total else 0.0
+    total = len(checks) # TOTAL DE CHECKS 
+    up_count = sum(1 for c in checks if c.status == ServiceStatus.UP) # CHECKS EXITOSOS
+    uptime_pct = (up_count / total * 100) if total else 0.0 # PORCENTAJE DE UPTIME
 
     latencies = sorted(c.response_time_ms for c in checks if c.response_time_ms is not None)
-    avg_latency = round(sum(latencies) / len(latencies), 2) if latencies else None
-    p95_latency = round(_percentile(latencies, 0.95), 2) if latencies else None
+    avg_latency = round(sum(latencies) / len(latencies), 2) if latencies else None # LATENCIA PROMEDIO 
+    p95_latency = round(_percentile(latencies, 0.95), 2) if latencies else None # LATENCIA P95 
 
-    tier = calculate_reliability_tier(uptime_pct, tier_a1, tier_d, tier_n)
+    tier = calculate_reliability_tier(uptime_pct, tier_a1, tier_d, tier_n) # CALCULA EL TIER 
 
     return ServiceStats(
         service_id=service_id,
@@ -55,12 +55,12 @@ def find_check_by_timestamp_binary(
         operations += 1
         mid = (lo + hi) // 2
         best = checks[mid]
-        if checks[mid].checked_at == target:
-            return checks[mid], operations
-        if checks[mid].checked_at < target:
-            lo = mid + 1
+        if checks[mid].checked_at == target: # SI EL CHECK ES IGUAL AL TARGET
+            return checks[mid], operations # RETORNA EL CHECK Y LA CANTIDAD DE OPERACIONES 
+        if checks[mid].checked_at < target: # SI EL CHECK ES MENOR AL TARGET
+            lo = mid + 1 # AVANZA AL SIGUIENTE
         else:
-            hi = mid - 1
+            hi = mid - 1 # RETROCEDE AL ANTERIOR
     return best, operations
 
 
