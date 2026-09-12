@@ -23,7 +23,7 @@ def send_alert(
         service_name=service.name,
         service_url=service.url,
         status=result.status.value,
-        message=f"Sentinel Detectó una Alerta de {alert_type.replace('_', ' ').title()}",
+        message=f"Sentinel detectó una alerta de {alert_type.replace('_', ' ').title()} en {service.name}",
         alert_type=alert_type,
         recipient=recipient,
         response_time_ms=result.response_time_ms,
