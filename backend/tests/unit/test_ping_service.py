@@ -24,6 +24,7 @@ def _make_result(status=ServiceStatus.UP, **kwargs):
 def repo():
     r = MagicMock()
     r.get_by_id.return_value = _make_service()
+    r.get_alert_rules.return_value = []
     return r
 
 
