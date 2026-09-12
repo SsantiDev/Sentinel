@@ -31,20 +31,20 @@ def select_due_checks(
     del reloj (el beat). Con beat cada 60s y lookahead 60, un servicio de
     intervalo 60 entra en cada corrida; uno de intervalo 300, cada 5.
     """
-    horizon = now + timedelta(seconds=lookahead_seconds)
-    heap: List[Tuple[datetime, int]] = []
+    horizon = now + timedelta(seconds=lookahead_seconds) #tiempo maximo para revisar
+    heap: List[Tuple[datetime, int]] = [] #cola de prioridad 
     operations = 0
 
-    for service_id, last_checked_at, interval_seconds in candidates:
-        heap.append((_due_at(last_checked_at, interval_seconds, now), service_id))
+    for service_id, last_checked_at, interval_seconds in candidates: #inserta los servicios en el heap
+        heap.append((_due_at(last_checked_at, interval_seconds, now), service_id)) 
         operations += 1
 
-    heapq.heapify(heap)
+    heapq.heapify(heap) #convierte la lista en un heap
     total_scheduled = len(heap)
 
-    due_service_ids: List[int] = []
-    while heap and heap[0][0] <= horizon:
-        _, service_id = heapq.heappop(heap)
+    due_service_ids: List[int] = [] #lista de servicios vencidos
+    while heap and heap[0][0] <= horizon: #mientras la cima del heap este dentro del horizonte
+        _, service_id = heapq.heappop(heap) #saca el servicio vencido
         due_service_ids.append(service_id)
         operations += 1
 
