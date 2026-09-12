@@ -48,54 +48,54 @@ class ServiceViewSet(viewsets.ModelViewSet):
         results = CheckResultModel.objects.filter(service_id=pk, service__owner=request.user)[:50]
         return Response(CheckResultSerializer(results, many=True).data)
 
-    @action(detail=True, methods=['get'])
-    def stats(self, request, pk=None):
-        service = self.get_object()
+    @action(detail=True, methods=['get']) # BINARY SEARCH PETICION
+    def stats(self, request, pk=None): 
+        service = self.get_object() 
         repo = DjangoServiceRepository()
-        result = calculate_service_stats(service.id, repo)
-        data = asdict(result)
+        result = calculate_service_stats(service.id, repo) # CALCULA ESTADISTICAS
+        data = asdict(result) # CONVIERTE A DICIONARIO
 
-        at_param = request.query_params.get('at')
+        at_param = request.query_params.get('at') 
         if at_param:
-            checks = repo.get_checks_for_service(service.id, limit=500)
-            nearest, operations = find_check_by_timestamp_binary(checks, datetime.fromisoformat(at_param))
+            checks = repo.get_checks_for_service(service.id, limit=500) # LIMITE DE CHECKS 
+            nearest, operations = find_check_by_timestamp_binary(checks, datetime.fromisoformat(at_param)) # FUNCION BINARY SEARCH
             data['nearest_check'] = {
-                'checked_at': nearest.checked_at.isoformat() if nearest else None,
-                'status': nearest.status.value if nearest else None,
-                'search_operations': operations,
+                'checked_at': nearest.checked_at.isoformat() if nearest else None, # CHECK MAS CERCANO 
+                'status': nearest.status.value if nearest else None, # ESTADO MAS CERCANO
+                'search_operations': operations, # OPERACIONES DE BUSQUEDA
             }
 
         return Response(data)
 
-    @action(detail=True, methods=['get'])
+    @action(detail=True, methods=['get']) # RECURSIVA PETICION 
     def incidents(self, request, pk=None):
         service = self.get_object()
         repo = DjangoServiceRepository()
-        incident = find_incident_start(service.id, repo)
+        incident = find_incident_start(service.id, repo) # FUNCION RECURSIVIDAD 
         if not incident:
             return Response({'active_incident': False})
 
         return Response({
             'active_incident': True,
-            'started_at': incident.start_check.checked_at.isoformat(),
-            'is_ongoing': incident.is_ongoing,
-            'search_operations': incident.operations_count,
+            'started_at': incident.start_check.checked_at.isoformat(), # INICIO DEL INCIDENTE
+            'is_ongoing': incident.is_ongoing, # SI EL INCIDENTE ESTA EN CURSO
+            'search_operations': incident.operations_count, # OPERACIONES DE BUSQUEDA
         })
 
-    @action(detail=True, methods=['get'])
+    @action(detail=True, methods=['get']) # FUNCION TREND
     def trend(self, request, pk=None):
         service = self.get_object()
-        repo = DjangoServiceRepository()
+        repo = DjangoServiceRepository() 
         critical_ms = float(request.query_params.get('critical_ms', 2000))
-        trend = predict_latency_trend(service.id, repo, critical_threshold_ms=critical_ms)
+        trend = predict_latency_trend(service.id, repo, critical_threshold_ms=critical_ms) #  FUNCION REGRESION LINEAL
         if not trend:
-            return Response({'has_data': False})
+            return Response({'has_data': False}) # SI NO HAY DATA 
 
         return Response({
-            'has_data': True,
-            'slope_ms_per_check': trend.slope_ms_per_check,
-            'is_degrading': trend.is_degrading,
-            'predicted_checks_to_breach': trend.predicted_checks_to_breach,
+            'has_data': True, # SI HAY DATA
+            'slope_ms_per_check': trend.slope_ms_per_check, # PENDIENTE DE LA REGRESION 
+            'is_degrading': trend.is_degrading, # SI LA PENDIENTE ES POSITIVA 
+            'predicted_checks_to_breach': trend.predicted_checks_to_breach, # CHECKS ESTIMADOS HASTA EL UMBRAL 
         })
 
 
