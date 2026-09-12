@@ -53,7 +53,13 @@
       "Bash(ping -n 2 github.com)",
       "Bash(xargs grep -l \"DATABASES\")",
       "Bash(where.exe python *)",
-      "Bash(pip show *)"
+      "Bash(pip show *)",
+      "Skill(run)",
+      "Bash(npx --version)",
+      "Bash(npm ls *)",
+      "Bash(npx playwright *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ]
   }
 }
