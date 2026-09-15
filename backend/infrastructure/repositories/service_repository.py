@@ -1,9 +1,9 @@
 from datetime import datetime
 from typing import List, Optional, Tuple
 from django.db.models import Max
-from domain.entities.service import Service, CheckResult, ServiceStatus, AlertRule
+from domain.entities.service import Service, CheckResult, ServiceStatus, AlertRule, ServiceDependency
 from domain.interfaces.service_repository import IServiceRepository
-from infrastructure.models import ServiceModel, CheckResultModel, AlertRuleModel
+from infrastructure.models import ServiceModel, CheckResultModel, AlertRuleModel, ServiceDependencyModel
 
 
 class DjangoServiceRepository(IServiceRepository):
@@ -77,6 +77,15 @@ class DjangoServiceRepository(IServiceRepository):
             .values_list('id', 'last_checked_at', 'check_interval_seconds')
         )
         return list(rows)
+
+    def get_dependency_edges(self, owner_id: int) -> List[ServiceDependency]:
+        # Array de flechas del grafo (quien depende de quien) para los
+        # servicios de este usuario. Alimenta compute_impacted_services.
+        rows = ServiceDependencyModel.objects.filter(service__owner_id=owner_id)
+        return [
+            ServiceDependency(id=m.pk, service_id=m.service_id, depends_on_id=m.depends_on_id)
+            for m in rows
+        ]
 
     def _to_entity(self, m: ServiceModel) -> Service:
         return Service(

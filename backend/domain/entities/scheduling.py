@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 
 @dataclass(frozen=True)
@@ -16,3 +16,11 @@ class DueCheckSelection:
     due_service_ids: List[int]
     total_scheduled: int
     operations_count: int
+
+
+@dataclass
+class SchedulerRun:
+    """Ultima vez que el turnero corrio: para saber si el reloj de fondo sigue vivo."""
+    last_run_at: Optional[datetime]
+    queued_count: int
+    total_scheduled: int

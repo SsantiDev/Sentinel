@@ -5,13 +5,16 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
-from infrastructure.models import ServiceModel, CheckResultModel, AlertRuleModel
+from infrastructure.models import ServiceModel, CheckResultModel, AlertRuleModel, ServiceDependencyModel
 from infrastructure.repositories.service_repository import DjangoServiceRepository
-from interfaces.http.serializers.service_serializer import ServiceSerializer, CheckResultSerializer, AlertRuleSerializer
+from interfaces.http.serializers.service_serializer import (
+    ServiceSerializer, CheckResultSerializer, AlertRuleSerializer, ServiceDependencySerializer,
+)
 from infrastructure.tasks.ping_tasks import ping_service_task
 from application.use_cases.calculate_service_stats import calculate_service_stats, find_check_by_timestamp_binary
 from application.use_cases.find_incident_start import find_incident_start
 from application.use_cases.predict_latency_trend import predict_latency_trend
+from application.use_cases.compute_impacted_services import compute_impacted_services
 
 
 class CheckPagination(PageNumberPagination):
@@ -95,8 +98,50 @@ class ServiceViewSet(viewsets.ModelViewSet):
             'has_data': True, # SI HAY DATA
             'slope_ms_per_check': trend.slope_ms_per_check, # PENDIENTE DE LA REGRESION 
             'is_degrading': trend.is_degrading, # SI LA PENDIENTE ES POSITIVA 
-            'predicted_checks_to_breach': trend.predicted_checks_to_breach, # CHECKS ESTIMADOS HASTA EL UMBRAL 
+            'predicted_checks_to_breach': trend.predicted_checks_to_breach, # CHECKS ESTIMADOS HASTA EL UMBRAL
         })
+
+    @action(detail=False, methods=['get'])
+    def graph(self, request):
+        """GET /api/v1/services/graph/ — arma el mapa completo para el
+        frontend: cada servicio (nodo) y cada dependencia (flecha), marcando
+        cuales quedan 'impactados' en cadena si algo esta caido."""
+        services = list(self.get_queryset())
+        last_checks = {s.id: s.checks.first() for s in services}  # mapa: id de servicio -> su ultimo check
+        repo = DjangoServiceRepository()
+        edges = repo.get_dependency_edges(request.user.id)  # array de dependencias (flechas) del usuario
+
+        down_ids = [  # array de ids de servicios actualmente caidos
+            s.id for s in services
+            if s.is_active and last_checks[s.id] and last_checks[s.id].status == 'down'
+        ]
+        edge_tuples = [(e.service_id, e.depends_on_id) for e in edges]  # array de tuplas (servicio, de_quien_depende)
+        impact = compute_impacted_services(edge_tuples, down_ids)
+        impacted_ids = set(impact.impacted_service_ids)  # set de ids afectados, para buscar rapido abajo
+
+        nodes = [
+            {
+                'id': s.id,
+                'name': s.name,
+                'status': last_checks[s.id].status if last_checks[s.id] else 'unknown',
+                'is_active': s.is_active,
+                'impacted': s.id in impacted_ids,
+            }
+            for s in services
+        ]
+        edges_payload = [
+            {'id': e.id, 'service': e.service_id, 'depends_on': e.depends_on_id} for e in edges
+        ]
+
+        return Response({'nodes': nodes, 'edges': edges_payload})
+
+
+class ServiceDependencyViewSet(viewsets.ModelViewSet):
+    serializer_class = ServiceDependencySerializer
+    http_method_names = ['get', 'post', 'delete']
+
+    def get_queryset(self):
+        return ServiceDependencyModel.objects.filter(service__owner=self.request.user)
 
 
 class CheckResultViewSet(viewsets.ReadOnlyModelViewSet):

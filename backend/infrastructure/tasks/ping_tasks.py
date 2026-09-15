@@ -4,6 +4,7 @@ from config.celery import app
 from application.use_cases.ping_service import ping_service
 from application.use_cases.select_due_checks import select_due_checks
 from infrastructure.repositories.service_repository import DjangoServiceRepository
+from infrastructure.repositories.scheduler_repository import DjangoSchedulerRepository
 from infrastructure.external.alert_notifier import (
     LogAlertNotifier, EmailAlertNotifier, SlackAlertNotifier, CompositeAlertNotifier,
 )
@@ -55,8 +56,13 @@ def schedule_all_pings():
         timezone.now(),
         lookahead_seconds=SCHEDULER_TICK_SECONDS,
     )
-    for service_id in selection.due_service_ids:
-        ping_service_task.delay(service_id)
+    for service_id in selection.due_service_ids:  # array de ids vencidos (salio del heap)
+        ping_service_task.delay(service_id)  # mete un trabajo en la cola de Redis/Celery; el worker lo ejecuta de fondo
+
+    DjangoSchedulerRepository().record_run(
+        queued_count=len(selection.due_service_ids),
+        total_scheduled=selection.total_scheduled,
+    )
 
     logger.info(
         "Turnero: %d/%d servicios vencidos encolados (%d operaciones)",

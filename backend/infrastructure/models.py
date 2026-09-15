@@ -86,6 +86,33 @@ class CheckResultModel(models.Model):
         ]
 
 
+class ServiceDependencyModel(models.Model):
+    """Una fila = una flecha del grafo: 'service' depende de 'depends_on'.
+    'unique_together' evita guardar la misma flecha dos veces.
+    """
+    service = models.ForeignKey(ServiceModel, on_delete=models.CASCADE, related_name='dependencies')
+    depends_on = models.ForeignKey(ServiceModel, on_delete=models.CASCADE, related_name='dependents')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'service_dependencies'
+        unique_together = ('service', 'depends_on')
+
+    def __str__(self):
+        return f'{self.service.name} depende de {self.depends_on.name}'
+
+
+class SchedulerRunModel(models.Model):
+    """Tabla de una sola fila: guarda el estado de la ultima corrida del
+    turnero (no historial, se pisa cada vez)."""
+    last_run_at = models.DateTimeField()
+    queued_count = models.IntegerField(default=0)  # cuantos servicios se encolaron esta corrida
+    total_scheduled = models.IntegerField(default=0)  # cuantos servicios activos habia en total
+
+    class Meta:
+        db_table = 'scheduler_runs'
+
+
 class BlockedIPModel(models.Model):
     ip_address = models.GenericIPAddressField(unique=True)
     attempts = models.IntegerField(default=0)

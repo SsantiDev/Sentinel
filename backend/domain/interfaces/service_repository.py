@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import List, Optional, Tuple
-from domain.entities.service import Service, CheckResult, AlertRule
+from domain.entities.service import Service, CheckResult, AlertRule, ServiceDependency
 
 
 class IServiceRepository(ABC):
@@ -28,3 +28,6 @@ class IServiceRepository(ABC):
 
     @abstractmethod
     def get_scheduling_candidates(self) -> List[Tuple[int, Optional[datetime], int]]: ...
+
+    @abstractmethod
+    def get_dependency_edges(self, owner_id: int) -> List[ServiceDependency]: ...

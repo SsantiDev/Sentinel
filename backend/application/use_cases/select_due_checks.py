@@ -31,20 +31,22 @@ def select_due_checks(
     del reloj (el beat). Con beat cada 60s y lookahead 60, un servicio de
     intervalo 60 entra en cada corrida; uno de intervalo 300, cada 5.
     """
-    horizon = now + timedelta(seconds=lookahead_seconds) #tiempo maximo para revisar
-    heap: List[Tuple[datetime, int]] = [] #cola de prioridad 
+    horizon = now + timedelta(seconds=lookahead_seconds)  # hora limite: hasta cuando cuenta como "vencido ya"
+    # Array de tuplas (hora_en_que_vence, id_del_servicio). Todavia no es un
+    # heap ordenado, es solo la lista cruda antes de heapify.
+    heap: List[Tuple[datetime, int]] = []
     operations = 0
 
-    for service_id, last_checked_at, interval_seconds in candidates: #inserta los servicios en el heap
-        heap.append((_due_at(last_checked_at, interval_seconds, now), service_id)) 
+    for service_id, last_checked_at, interval_seconds in candidates:  # candidates: array de (id, ultima_revision, intervalo)
+        heap.append((_due_at(last_checked_at, interval_seconds, now), service_id))
         operations += 1
 
-    heapq.heapify(heap) #convierte la lista en un heap
+    heapq.heapify(heap)  # convierte el array en cola de prioridad: el que vence primero queda arriba
     total_scheduled = len(heap)
 
-    due_service_ids: List[int] = [] #lista de servicios vencidos
-    while heap and heap[0][0] <= horizon: #mientras la cima del heap este dentro del horizonte
-        _, service_id = heapq.heappop(heap) #saca el servicio vencido
+    due_service_ids: List[int] = []  # array de ids (numeros) de servicios vencidos, se va llenando abajo
+    while heap and heap[0][0] <= horizon:  # heap[0] es la cima (el mas urgente); mientras siga dentro del horizonte
+        _, service_id = heapq.heappop(heap)  # saca la cima y reacomoda el heap
         due_service_ids.append(service_id)
         operations += 1
 

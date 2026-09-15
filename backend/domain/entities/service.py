@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import List, Optional
 
 
 class ServiceStatus(str, Enum):
@@ -46,6 +46,21 @@ class Alert:
     condition_threshold: Optional[float] = None
     checked_at: Optional[datetime] = None
     sent_at: Optional[datetime] = None
+
+
+@dataclass
+class ServiceDependency:
+    """Una flecha del grafo: 'service_id' depende de 'depends_on_id'."""
+    id: Optional[int]
+    service_id: int
+    depends_on_id: int
+
+
+@dataclass
+class ImpactAnalysis:
+    """Que servicios se ven afectados transitivamente cuando otros estan caidos."""
+    impacted_service_ids: List[int]  # array de ids de servicios afectados en cadena
+    operations_count: int  # cuantos pasos hizo el recorrido (para medir costo)
 
 
 @dataclass

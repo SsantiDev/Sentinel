@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from infrastructure.models import ServiceModel, CheckResultModel, AlertRuleModel
+from infrastructure.models import ServiceModel, CheckResultModel, AlertRuleModel, ServiceDependencyModel
 
 
 class ServiceSerializer(serializers.ModelSerializer):
@@ -40,6 +40,31 @@ class CheckResultSerializer(serializers.ModelSerializer):
         model = CheckResultModel
         fields = ['id', 'service', 'service_name', 'status', 'response_time_ms', 'status_code', 'error_message', 'checked_at']
         read_only_fields = fields
+
+
+class ServiceDependencySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ServiceDependencyModel
+        fields = ['id', 'service', 'depends_on', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+    def validate(self, attrs):
+        # Reglas antes de guardar una dependencia nueva: no puede depender de
+        # si mismo, y ambos servicios tienen que ser del usuario que pide.
+        service = attrs['service']
+        depends_on = attrs['depends_on']
+        if service.id == depends_on.id:
+            raise serializers.ValidationError({
+                'error': 'Un servicio no puede depender de si mismo',
+                'code': 'invalid_dependency',
+            })
+        owner = self.context['request'].user
+        if service.owner_id != owner.id or depends_on.owner_id != owner.id:
+            raise serializers.ValidationError({
+                'error': 'Ambos servicios deben pertenecer al usuario actual',
+                'code': 'invalid_dependency',
+            })
+        return attrs
 
 
 class AlertRuleSerializer(serializers.ModelSerializer):
