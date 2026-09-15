@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ExternalLink, Clock, BarChart3, Power, Trash2, Edit2 } from 'lucide-react'
 import { StatusBadge } from './StatusBadge'
 import { StatusTimeline } from './StatusTimeline'
+import { NextCheckCountdown } from './NextCheckCountdown'
 import { cn } from '../../infrastructure/utils'
 
 export function ServiceCard({ service, onToggle, onDelete, onEdit }) {
@@ -79,6 +80,11 @@ export function ServiceCard({ service, onToggle, onDelete, onEdit }) {
             <BarChart3 size={12} />
             <span>{service.is_active ? (service.last_checked_at ? 'Activo' : 'Pendiente') : 'Inactivo'}</span>
           </div>
+          <NextCheckCountdown
+            lastCheckedAt={service.last_checked_at}
+            checkIntervalSeconds={service.check_interval_seconds}
+            isActive={service.is_active}
+          />
         </div>
 
         <div className="flex items-center gap-2">

@@ -14,6 +14,7 @@ const resources = {
         logout: 'Cerrar Sesión',
         theme: 'Tema',
         admin: 'Usuarios',
+        topology: 'Topología',
       },
       admin: {
         title: 'Gestión de Usuarios',
@@ -303,6 +304,7 @@ const resources = {
         logout: 'Log Out',
         theme: 'Theme',
         admin: 'Users',
+        topology: 'Topology',
       },
       admin: {
         title: 'User Management',

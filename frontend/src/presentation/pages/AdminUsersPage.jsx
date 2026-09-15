@@ -4,6 +4,8 @@ import { Users, UserPlus, Trash2, Shield, User as UserIcon, Calendar, Clock, Che
 import { useTranslation } from 'react-i18next'
 import apiClient from '../../infrastructure/apiClient'
 import { cn } from '../../infrastructure/utils'
+import { SchedulerHealthCard } from '../components/SchedulerHealthCard'
+import { useSchedulerStatus } from '../../application/hooks/useSchedulerStatus'
 
 export function AdminUsersPage() {
   const { t } = useTranslation()
@@ -11,6 +13,7 @@ export function AdminUsersPage() {
   const [blockedIps, setBlockedIps] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('users')
+  const { status: schedulerStatus, loading: schedulerLoading } = useSchedulerStatus()
   
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -124,6 +127,8 @@ export function AdminUsersPage() {
 
   return (
     <div className="w-full space-y-6 pb-12">
+      <SchedulerHealthCard status={schedulerStatus} loading={schedulerLoading} />
+
       <div className="flex items-center justify-between gap-4 bg-bg-card/50 p-2 rounded-2xl border border-border-subtle backdrop-blur-sm">
         <div className="flex gap-2">
           <button 

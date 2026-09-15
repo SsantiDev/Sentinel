@@ -61,7 +61,7 @@ export function useHistory() {
   }, [setSearchParams])
 
   const setFilters = useCallback((updater) => {
-    filterStack.push(filters)
+    filterStack.push(filters) // apila el filtro actual antes de cambiarlo (para poder deshacer despues)
     setSearchParams(prev => {
       const current = paramsToFilters(prev)
       const next = typeof updater === 'function' ? updater(current) : updater
@@ -70,7 +70,7 @@ export function useHistory() {
   }, [filters, filterStack, setSearchParams])
 
   const undoFilter = useCallback(() => {
-    const previous = filterStack.pop()
+    const previous = filterStack.pop() // saca de la pila el ultimo filtro guardado (LIFO)
     if (!previous) return
     setSearchParams(prev => buildFilterParams(previous, prev.get('page_size')), { replace: true })
   }, [filterStack, setSearchParams])

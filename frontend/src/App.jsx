@@ -11,6 +11,7 @@ import { getToken } from './infrastructure/authStorage'
 import { Layout } from './presentation/components/Layout'
 import { useAuth } from './application/hooks/useAuth'
 import { AdminUsersPage } from './presentation/pages/AdminUsersPage'
+import { TopologyPage } from './presentation/pages/TopologyPage'
 import { RegisterPage } from './presentation/pages/RegisterPage'
 import { VerifyEmailPage } from './presentation/pages/VerifyEmailPage'
 import { ForgotPasswordPage } from './presentation/pages/ForgotPasswordPage'
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="/services/:id" element={<ProtectedRoute><ServiceDetailPage /></ProtectedRoute>} />
           <Route path="/alerts" element={<ProtectedRoute><AlertsPage /></ProtectedRoute>} />
           <Route path="/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
+          <Route path="/topology" element={<ProtectedRoute><TopologyPage /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="/admin" element={<SuperProtectedRoute><AdminUsersPage /></SuperProtectedRoute>} />
         </Routes>
