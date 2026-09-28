@@ -54,5 +54,14 @@ services:
     depends_on:
       - worker
 
+  nginx:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - web
+
 volumes:
   postgres_data:
