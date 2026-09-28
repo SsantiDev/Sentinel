@@ -59,7 +59,29 @@
       "Bash(npm ls *)",
       "Bash(npx playwright *)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Skill(plan-feature)",
+      "Read(//c//**)",
+      "Bash(where python *)",
+      "Bash(docker exec sentinel-web-1 *)",
+      "Read(//tmp/**)",
+      "Bash(ruff check *)",
+      "Bash(py -c \"import sys; print\\(sys.executable\\)\")",
+      "PowerShell(Out-File *)",
+      "Bash(\"/c/Users/SEBAS/AppData/Local/Programs/Python/Python313/python\" -c \"import django; print\\(django.__version__\\)\")",
+      "Bash(\"/c/Users/SEBAS/AppData/Local/Programs/Python/Python313/python\" -m pip show django)",
+      "Bash(py -0)",
+      "Bash(\"/c/Users/SEBAS/AppData/Local/Programs/Python/Python313/python\" -m venv .venv_test)",
+      "Bash(\"./.venv_test/Scripts/python.exe\" -m pip install -q -r requirements.txt)",
+      "Bash(DATABASE_URL=sqlite:///:memory: REDIS_URL=redis://localhost:6379/0 CELERY_BROKER_URL=redis://localhost:6379/0 CELERY_RESULT_BACKEND=redis://localhost:6379/1 SECRET_KEY=test-secret-key DEBUG=True ALLOWED_HOSTS=localhost,127.0.0.1 ALERT_EMAIL_FROM=alerts@sentinel.local ALERT_EMAIL_RECIPIENTS='' ./.venv_test/Scripts/python.exe -m pytest tests/unit/test_check_sliding_window.py tests/integration/test_membership_views.py -v)",
+      "Bash(DATABASE_URL=sqlite:///:memory: REDIS_URL=redis://localhost:6379/0 CELERY_BROKER_URL=redis://localhost:6379/0 CELERY_RESULT_BACKEND=redis://localhost:6379/1 SECRET_KEY=test-secret-key DEBUG=True ALLOWED_HOSTS=localhost,127.0.0.1 ALERT_EMAIL_FROM=alerts@sentinel.local ALERT_EMAIL_RECIPIENTS='' ./.venv_test/Scripts/python.exe -m pytest tests/unit/test_check_sliding_window.py tests/integration/test_membership_views.py -v --no-cov)",
+      "Bash(DATABASE_URL=sqlite:///:memory: REDIS_URL=redis://localhost:6379/0 CELERY_BROKER_URL=redis://localhost:6379/0 CELERY_RESULT_BACKEND=redis://localhost:6379/1 SECRET_KEY=test-secret-key DEBUG=True ALLOWED_HOSTS=localhost,127.0.0.1 ALERT_EMAIL_FROM=alerts@sentinel.local ALERT_EMAIL_RECIPIENTS='' ./.venv_test/Scripts/python.exe -m pytest -m 'not slow' --no-cov -q)",
+      "Bash(DATABASE_URL=sqlite:///:memory: REDIS_URL=redis://localhost:6379/0 CELERY_BROKER_URL=redis://localhost:6379/0 CELERY_RESULT_BACKEND=redis://localhost:6379/1 SECRET_KEY=test-secret-key DEBUG=True ALLOWED_HOSTS=localhost,127.0.0.1 ALERT_EMAIL_FROM=alerts@sentinel.local ALERT_EMAIL_RECIPIENTS='' ./.venv_test/Scripts/python.exe manage.py makemigrations --check --dry-run)",
+      "Bash(docker info *)",
+      "Bash(xargs grep -ln \"nav.topology\\\\|nav.admin\")",
+      "PowerShell(Get-Process *)",
+      "PowerShell(Start-Process \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe\")",
+      "Bash(git status *)"
     ]
   }
 }
