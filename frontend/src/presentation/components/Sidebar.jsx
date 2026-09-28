@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Activity, Bell, History, Settings, LogOut, Sun, Moon, Users, Share2 } from 'lucide-react'
+import { Activity, Bell, History, Settings, LogOut, Sun, Moon, Users, Share2, AlertTriangle } from 'lucide-react'
 import { useAuth } from '../../application/hooks/useAuth'
 import { useTheme } from '../../application/context/ThemeContext'
 import { cn } from '../../infrastructure/utils'
@@ -23,6 +23,7 @@ export function Sidebar() {
 
   if (isSuperUser) {
     menuItems.push({ icon: Users, label: t('nav.admin'), path: '/admin' })
+    menuItems.push({ icon: AlertTriangle, label: t('nav.anomalies'), path: '/anomalies' })
   }
 
   const handleLogout = () => {

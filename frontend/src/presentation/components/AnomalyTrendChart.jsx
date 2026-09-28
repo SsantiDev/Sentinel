@@ -1,0 +1,56 @@
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts'
+import { useTheme } from '../../application/context/ThemeContext'
+
+export function AnomalyTrendChart({ dailyEvolution }) {
+  const { isDark } = useTheme()
+  const data = dailyEvolution.map((d) => ({
+    date: new Date(d.date).toLocaleDateString([], { day: '2-digit', month: '2-digit' }),
+    events: d.event_count,
+    anomalies: d.anomaly_count,
+  }))
+
+  const colors = {
+    grid: isDark ? '#2a2a3e' : '#e2e8f0',
+    text: isDark ? '#9ca3af' : '#64748b',
+    tooltipBg: isDark ? '#1a1a2e' : '#ffffff',
+    tooltipBorder: isDark ? '#2a2a3e' : '#e2e8f0',
+    tooltipText: isDark ? '#ffffff' : '#0f172a',
+  }
+
+  return (
+    <div className="w-full h-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={colors.grid} />
+          <XAxis
+            dataKey="date"
+            tick={{ fill: colors.text, fontSize: 10, fontWeight: 500 }}
+            axisLine={false}
+            tickLine={false}
+            dy={10}
+          />
+          <YAxis
+            tick={{ fill: colors.text, fontSize: 10, fontWeight: 500 }}
+            axisLine={false}
+            tickLine={false}
+            allowDecimals={false}
+          />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: colors.tooltipBg,
+              borderColor: colors.tooltipBorder,
+              borderRadius: '12px',
+              fontSize: '12px',
+              color: colors.tooltipText,
+              boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+            }}
+            itemStyle={{ color: colors.tooltipText }}
+          />
+          <Legend wrapperStyle={{ fontSize: '11px' }} />
+          <Line type="monotone" dataKey="events" name="Eventos" stroke="#2ecc71" dot={false} strokeWidth={2} animationDuration={1000} />
+          <Line type="monotone" dataKey="anomalies" name="Anomalías" stroke="#e74c3c" dot={false} strokeWidth={2} animationDuration={1000} />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
