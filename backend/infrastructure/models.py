@@ -126,3 +126,93 @@ class BlockedIPModel(models.Model):
 
     def __str__(self):
         return f"{self.ip_address} ({'BLOCKED' if self.is_blocked else 'Active'})"
+
+
+class PlanModel(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+    max_checks_per_window = models.IntegerField()
+    window_seconds = models.IntegerField()
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'plans'
+
+    def __str__(self):
+        return self.name
+
+
+class SubscriptionModel(models.Model):
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('suspended', 'Suspended'),
+        ('cancelled', 'Cancelled'),
+    ]
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='subscription',
+    )
+    plan = models.ForeignKey(PlanModel, on_delete=models.PROTECT, related_name='subscriptions')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    started_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'subscriptions'
+
+    def __str__(self):
+        return f'{self.user.username} — {self.plan.name}'
+
+
+class UsageEventModel(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='usage_events',
+    )
+    event_type = models.CharField(max_length=50)
+    occurred_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'usage_events'
+        ordering = ['-occurred_at']
+        indexes = [
+            models.Index(fields=['user', '-occurred_at'], name='usage_events_user_at_idx'),
+        ]
+
+
+class UsageAnomalyModel(models.Model):
+    STATUS_CHOICES = [
+        ('open', 'Open'),
+        ('reviewed', 'Reviewed'),
+        ('discarded', 'Discarded'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='usage_anomalies',
+    )
+    event_count = models.IntegerField()
+    window_seconds = models.IntegerField()
+    threshold = models.IntegerField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
+    detected_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'usage_anomalies'
+        ordering = ['-detected_at']
+
+    def __str__(self):
+        return f'{self.user.username} — {self.event_count} en {self.window_seconds}s'
+
+
+@receiver(post_save, sender=settings.AUTH_USER_MODEL)
+def create_default_subscription(sender, instance, created, **kwargs):
+    if created:
+        free_plan = PlanModel.objects.filter(name='free').first()
+        if free_plan:
+            SubscriptionModel.objects.get_or_create(user=instance, defaults={'plan': free_plan})
