@@ -8,8 +8,8 @@ from interfaces.http.views.user_views import UserViewSet
 from interfaces.http.views.security_views import BlockedIPViewSet
 from interfaces.http.views.public_views import PublicCheckView
 from interfaces.http.views.scheduler_views import SchedulerStatusView
-from interfaces.http.views.membership_views import (
-    UsageEventView, SubscriptionMeView, PlanViewSet, UsageAnomalyViewSet,
+from interfaces.http.views.transaction_views import (
+    TransactionIngestView, TransactionAnomalyViewSet, DetectionConfigView,
 )
 
 router = DefaultRouter()
@@ -19,8 +19,7 @@ router.register('alert-rules', AlertRuleViewSet, basename='alert-rule')
 router.register('service-dependencies', ServiceDependencyViewSet, basename='service-dependency')
 router.register('users', UserViewSet, basename='user')
 router.register('blocked-ips', BlockedIPViewSet, basename='blocked-ip')
-router.register('plans', PlanViewSet, basename='plan')
-router.register('usage-anomalies', UsageAnomalyViewSet, basename='usage-anomaly')
+router.register('transaction-anomalies', TransactionAnomalyViewSet, basename='transaction-anomaly')
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -28,6 +27,6 @@ urlpatterns = [
     path('settings/profile/password/', ProfileUpdateView.as_view(), name='profile-password'),
     path('public/check/', PublicCheckView.as_view(), name='public-check'),
     path('scheduler/status/', SchedulerStatusView.as_view(), name='scheduler-status'),
-    path('usage-events/', UsageEventView.as_view(), name='usage-events'),
-    path('subscriptions/me/', SubscriptionMeView.as_view(), name='subscription-me'),
+    path('transactions/', TransactionIngestView.as_view(), name='transactions-ingest'),
+    path('detection-config/', DetectionConfigView.as_view(), name='detection-config'),
 ]

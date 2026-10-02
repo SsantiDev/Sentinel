@@ -1,6 +1,10 @@
 import { motion } from 'framer-motion'
-import { AlertTriangle, Users, Percent, Activity } from 'lucide-react'
+import { AlertTriangle, Users, Percent, DollarSign } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+
+const currency = new Intl.NumberFormat('es-CO', {
+  style: 'currency', currency: 'COP', maximumFractionDigits: 0,
+})
 
 export function AnomalyStatCards({ stats }) {
   const { t } = useTranslation()
@@ -20,7 +24,15 @@ export function AnomalyStatCards({ stats }) {
       icon: Percent,
       color: 'from-orange-500/20 to-amber-500/5',
       textColor: 'text-orange-500',
-      desc: `${stats.events_this_month} ${t('anomalies.eventsMonth').toLowerCase()}`,
+      desc: `${stats.transactions_this_month} ${t('anomalies.transactionsMonth').toLowerCase()}`,
+    },
+    {
+      title: t('anomalies.suspiciousValue'),
+      value: currency.format(stats.suspicious_total_value || 0),
+      icon: DollarSign,
+      color: 'from-red-500/20 to-rose-500/5',
+      textColor: 'text-rose-500',
+      desc: `${stats.avg_transactions_per_user} ${t('anomalies.avgTransactionsPerUser').toLowerCase()}`,
     },
     {
       title: t('anomalies.affectedUsers'),
@@ -28,15 +40,7 @@ export function AnomalyStatCards({ stats }) {
       icon: Users,
       color: 'from-blue-500/20 to-indigo-500/5',
       textColor: 'text-blue-500',
-      desc: t('anomalies.recurrentUsers'),
-    },
-    {
-      title: t('anomalies.avgEventsPerUser'),
-      value: stats.avg_events_per_user,
-      icon: Activity,
-      color: 'from-emerald-500/20 to-teal-500/5',
-      textColor: 'text-emerald-500',
-      desc: `${stats.events_today} ${t('anomalies.eventsToday').toLowerCase()}`,
+      desc: `${stats.transactions_today} ${t('anomalies.transactionsToday').toLowerCase()}`,
     },
   ]
 

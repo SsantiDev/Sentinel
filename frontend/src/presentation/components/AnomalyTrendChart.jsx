@@ -1,11 +1,13 @@
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts'
+import { useTranslation } from 'react-i18next'
 import { useTheme } from '../../application/context/ThemeContext'
 
 export function AnomalyTrendChart({ dailyEvolution }) {
   const { isDark } = useTheme()
+  const { t } = useTranslation()
   const data = dailyEvolution.map((d) => ({
     date: new Date(d.date).toLocaleDateString([], { day: '2-digit', month: '2-digit' }),
-    events: d.event_count,
+    transactions: d.transaction_count,
     anomalies: d.anomaly_count,
   }))
 
@@ -47,8 +49,8 @@ export function AnomalyTrendChart({ dailyEvolution }) {
             itemStyle={{ color: colors.tooltipText }}
           />
           <Legend wrapperStyle={{ fontSize: '11px' }} />
-          <Line type="monotone" dataKey="events" name="Eventos" stroke="#2ecc71" dot={false} strokeWidth={2} animationDuration={1000} />
-          <Line type="monotone" dataKey="anomalies" name="Anomalías" stroke="#e74c3c" dot={false} strokeWidth={2} animationDuration={1000} />
+          <Line type="monotone" dataKey="transactions" name={t('anomalies.table.transactionCount')} stroke="#2ecc71" dot={false} strokeWidth={2} animationDuration={1000} />
+          <Line type="monotone" dataKey="anomalies" name={t('nav.anomalies')} stroke="#e74c3c" dot={false} strokeWidth={2} animationDuration={1000} />
         </LineChart>
       </ResponsiveContainer>
     </div>

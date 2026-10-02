@@ -96,8 +96,23 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_THROTTLE_RATES': {
         'public_check': '10/hour',
+        # Endpoint publico de ingesta de transacciones: limite generoso para
+        # no bloquear una evaluacion automatizada, pero suficiente para frenar
+        # el martilleo de un escaner (ZAP/Burp) o un intento de DoS.
+        'transactions_ingest': '600/min',
     },
+    # Tamano maximo de un lote de transacciones por request (evita que un
+    # payload gigante agote memoria).
+    'MAX_TRANSACTIONS_PER_REQUEST': 1000,
 }
+
+# --- Cabeceras / politicas de seguridad (mitigan alertas de ZAP/Burp) ---
+# X-Content-Type-Options: nosniff
+SECURE_CONTENT_TYPE_NOSNIFF = True
+# Referrer-Policy
+SECURE_REFERRER_POLICY = 'same-origin'
+# Clickjacking: la respuesta no puede embeberse en un iframe
+X_FRAME_OPTIONS = 'DENY'
 
 EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
 EMAIL_HOST = env('SMTP_HOST', default='localhost')
