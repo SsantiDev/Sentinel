@@ -7,6 +7,10 @@ evaluaría un bot automático.
 
 ## Índice
 
+> 👉 **¿Solo quieres levantar y probar el proyecto?** Ve directo a
+> [10_COMO_EJECUTAR_TODO.md](10_COMO_EJECUTAR_TODO.md) — guía paso a paso con
+> Cloudflare (sin login).
+
 | Archivo | Para qué sirve |
 |---|---|
 | [01_QUE_HACE_EL_SISTEMA.md](01_QUE_HACE_EL_SISTEMA.md) | El problema y la idea, sin tecnicismos |
@@ -18,6 +22,7 @@ evaluaría un bot automático.
 | [07_CUMPLIMIENTO_ARQUITECTURA.md](07_CUMPLIMIENTO_ARQUITECTURA.md) | % de cumplimiento de arquitectura y principios |
 | [08_ESCALABILIDAD.md](08_ESCALABILIDAD.md) | Rendimiento con muchos datos y concurrencia (1000 / 1M usuarios) |
 | [09_ENTREGA_Y_URL_PUBLICA.md](09_ENTREGA_Y_URL_PUBLICA.md) | Sustentación: levantar, exponer con ngrok y generar TXNS |
+| [10_COMO_EJECUTAR_TODO.md](10_COMO_EJECUTAR_TODO.md) | ⭐ Guía rápida paso a paso (Cloudflare, sin login) + prompt para Claude Code |
 
 ## En una frase
 

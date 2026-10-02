@@ -34,7 +34,15 @@ La app queda en **http://localhost** (nginx) y la API en `http://localhost/api/v
 
 ## 2. Exponer con una URL pública
 
-### Ngrok (recomendado)
+### Cloudflare Tunnel (recomendado — sin login)
+```bash
+cloudflared tunnel --url http://localhost:80
+```
+Imprime una URL `https://algo.trycloudflare.com`. No pide cuenta ni
+autenticación (ideal en equipos empresariales). Guía detallada y comandos de
+instalación en [10_COMO_EJECUTAR_TODO.md](10_COMO_EJECUTAR_TODO.md).
+
+### Ngrok (alternativa)
 ```bash
 ngrok http 80
 ```
