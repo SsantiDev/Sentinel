@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Activity, Bell, History, Settings, LogOut, Sun, Moon, Users, Share2, AlertTriangle } from 'lucide-react'
+import { Activity, Bell, History, Settings, LogOut, Sun, Moon, Users, Share2, AlertTriangle, CreditCard } from 'lucide-react'
 import { useAuth } from '../../application/hooks/useAuth'
 import { useTheme } from '../../application/context/ThemeContext'
 import { cn } from '../../infrastructure/utils'
@@ -18,6 +18,7 @@ export function Sidebar() {
     { icon: Bell, label: t('nav.alerts'), path: '/alerts' },
     { icon: History, label: t('nav.history'), path: '/history' },
     { icon: Share2, label: t('nav.topology'), path: '/topology' },
+    { icon: CreditCard, label: t('nav.simulator'), path: '/transactions' },
     { icon: Settings, label: t('nav.settings'), path: '/settings' },
   ]
 

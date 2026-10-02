@@ -15,6 +15,7 @@ const resources = {
         theme: 'Tema',
         admin: 'Usuarios',
         topology: 'Topología',
+        simulator: 'Transacciones',
         anomalies: 'Anomalías',
       },
       admin: {
@@ -291,6 +292,31 @@ const resources = {
         latencyTrend: 'Tendencia de Latencia',
         breachIn: 'Cruzará el umbral crítico en ~{{count}} checks',
       },
+      sim: {
+        title: 'Simulador de Transacciones',
+        subtitle: 'Genera una transacción (o una ráfaga) y envíala al sistema. El hash se calcula en tu navegador.',
+        user: 'Usuario (correo)',
+        value: 'Valor',
+        paymentMethod: 'Método de pago',
+        date: 'Fecha y hora',
+        send: 'Enviar transacción',
+        burst: {
+          toggle: 'Simular ráfaga (varias transacciones)',
+          help: 'Envía varias transacciones del mismo usuario separadas por pocos segundos — útil para disparar una anomalía.',
+          count: 'Cantidad',
+          interval: 'Intervalo (seg)',
+        },
+        errors: {
+          userRequired: 'El usuario (correo) es obligatorio.',
+        },
+        result: {
+          title: 'Resultado',
+          accepted: 'Aceptadas',
+          rejected: 'Rechazadas',
+          anomalies: 'Anomalías detectadas',
+          viewDashboard: 'Ver en el dashboard de anomalías',
+        },
+      },
       anomalies: {
         title: 'Anomalías de Transacciones',
         subtitle: 'Detección por ventana deslizante — transacciones por usuario',
@@ -368,6 +394,7 @@ const resources = {
         theme: 'Theme',
         admin: 'Users',
         topology: 'Topology',
+        simulator: 'Transactions',
         anomalies: 'Anomalies',
       },
       admin: {
@@ -643,6 +670,31 @@ const resources = {
         hoursAgo_other: '{{count}} hours',
         latencyTrend: 'Latency Trend',
         breachIn: 'Will cross critical threshold in ~{{count}} checks',
+      },
+      sim: {
+        title: 'Transaction Simulator',
+        subtitle: 'Create a transaction (or a burst) and send it to the system. The hash is computed in your browser.',
+        user: 'User (email)',
+        value: 'Value',
+        paymentMethod: 'Payment method',
+        date: 'Date and time',
+        send: 'Send transaction',
+        burst: {
+          toggle: 'Simulate a burst (several transactions)',
+          help: 'Sends several transactions for the same user a few seconds apart — useful to trigger an anomaly.',
+          count: 'Count',
+          interval: 'Interval (sec)',
+        },
+        errors: {
+          userRequired: 'User (email) is required.',
+        },
+        result: {
+          title: 'Result',
+          accepted: 'Accepted',
+          rejected: 'Rejected',
+          anomalies: 'Anomalies detected',
+          viewDashboard: 'Open the anomalies dashboard',
+        },
       },
       anomalies: {
         title: 'Transaction Anomalies',
