@@ -1,7 +1,9 @@
+from django.conf import settings
 from rest_framework import mixins, viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 
 from infrastructure.models import TransactionAnomalyModel
 from infrastructure.repositories.transaction_repository import DjangoTransactionRepository
@@ -15,8 +17,16 @@ from domain.entities.transaction import DetectionConfig
 
 
 class TransactionIngestView(APIView):
-    """POST publico de ingesta. Acepta una transaccion o una lista."""
+    """POST publico de ingesta. Acepta una transaccion o una lista.
+
+    Es intencionalmente abierto (sin autenticacion) para que una evaluacion
+    automatizada pueda enviar transacciones. La proteccion se basa en: hash
+    de integridad por transaccion, throttling, limite de tamano de lote y
+    cabeceras de seguridad.
+    """
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'transactions_ingest'
 
     def post(self, request):
         data = request.data
@@ -26,6 +36,13 @@ class TransactionIngestView(APIView):
             return Response(
                 {"error": "Body must be a transaction object or a list", "code": "INVALID_BODY"},
                 status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        max_batch = settings.REST_FRAMEWORK.get('MAX_TRANSACTIONS_PER_REQUEST', 1000)
+        if len(payloads) > max_batch:
+            return Response(
+                {"error": f"Batch too large (max {max_batch})", "code": "BATCH_TOO_LARGE"},
+                status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             )
 
         repo = DjangoTransactionRepository()

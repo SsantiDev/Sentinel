@@ -1,6 +1,5 @@
 from django.http import JsonResponse
 from infrastructure.models import BlockedIPModel
-from django.utils import timezone
 
 class HardeningMiddleware:
     def __init__(self, get_response):
@@ -19,6 +18,17 @@ class HardeningMiddleware:
             )
 
         response = self.get_response(request)
+        return self._apply_security_headers(request, response)
+
+    def _apply_security_headers(self, request, response):
+        # Cabeceras de seguridad que suelen reportar ZAP/Burp si faltan.
+        response.setdefault('X-Content-Type-Options', 'nosniff')
+        response.setdefault('Referrer-Policy', 'same-origin')
+        response.setdefault('Permissions-Policy', 'geolocation=(), microphone=(), camera=()')
+        # Las respuestas de la API no deben cachearse (pueden traer datos sensibles).
+        if request.path.startswith('/api/'):
+            response.setdefault('Cache-Control', 'no-store')
+            response.setdefault('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'")
         return response
 
     def get_client_ip(self, request):

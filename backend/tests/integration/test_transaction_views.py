@@ -78,6 +78,28 @@ def test_ingest_duplicate_id_is_rejected(client):
 
 
 @pytest.mark.django_db
+def test_ingest_rejects_oversized_batch(client, settings):
+    settings.REST_FRAMEWORK = {**settings.REST_FRAMEWORK, 'MAX_TRANSACTIONS_PER_REQUEST': 2}
+    payloads = [
+        _payload(50, 'f@f.com', '2026-09-23T10:00:01', 100),
+        _payload(51, 'f@f.com', '2026-09-23T10:00:02', 100),
+        _payload(52, 'f@f.com', '2026-09-23T10:00:03', 100),
+    ]
+    res = client.post('/api/v1/transactions/', payloads, format='json')
+    assert res.status_code == 413
+    assert res.data['code'] == 'BATCH_TOO_LARGE'
+
+
+@pytest.mark.django_db
+def test_ingest_response_has_security_headers(client):
+    p = _payload(60, 'g@g.com', '2026-09-23T10:00:01', 100)
+    res = client.post('/api/v1/transactions/', p, format='json')
+    assert res.headers['X-Content-Type-Options'] == 'nosniff'
+    assert res.headers['Cache-Control'] == 'no-store'
+    assert 'Content-Security-Policy' in res.headers
+
+
+@pytest.mark.django_db
 def test_anomalies_endpoint_requires_admin(client):
     res = client.get('/api/v1/transaction-anomalies/')
     assert res.status_code in (401, 403)
