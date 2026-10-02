@@ -5,30 +5,16 @@ URL pública y generar transacciones (TXNS) para la demo.
 
 ## 1. Levantar el proyecto (Docker)
 
-```bash
-cd Sentinel/backend
-cp .env.example .env
-```
-
-Edita `backend/.env` y asegúrate de tener estas dos líneas (clave para local):
+> Guía completa y amigable: [10_COMO_EJECUTAR_TODO.md](10_COMO_EJECUTAR_TODO.md).
 
 ```bash
-DJANGO_SETTINGS_MODULE=config.settings.local
-SECRET_KEY=pon-algo-largo-y-aleatorio-1234567890
-```
-
-> Sin `DJANGO_SETTINGS_MODULE=config.settings.local`, el backend arranca en
-> modo producción y **redirige a HTTPS**, lo que rompe las pruebas por HTTP
-> (incluido ngrok).
-
-Levanta todo y prepara la base:
-
-```bash
-cd ..
+cp backend/.env.example backend/.env
 docker compose up --build -d
-docker compose exec web python manage.py migrate
-docker compose exec web python manage.py createsuperuser
 ```
+
+Al levantar, Docker **aplica las migraciones y crea el superusuario
+automáticamente** (`admin / admin12345`). No hace falta editar nada ni correr
+`migrate`/`createsuperuser` a mano.
 
 La app queda en **http://localhost** (nginx) y la API en `http://localhost/api/v1/`.
 
