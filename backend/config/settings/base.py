@@ -96,14 +96,11 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_THROTTLE_RATES': {
         'public_check': '10/hour',
-        # Endpoint publico de ingesta de transacciones: limite generoso para
-        # no bloquear una evaluacion automatizada, pero suficiente para frenar
-        # el martilleo de un escaner (ZAP/Burp) o un intento de DoS.
-        'transactions_ingest': '600/min',
     },
     # Tamano maximo de un lote de transacciones por request (evita que un
-    # payload gigante agote memoria).
-    'MAX_TRANSACTIONS_PER_REQUEST': 1000,
+    # payload gigante agote memoria). El endpoint de ingesta NO tiene
+    # throttling para no bloquear la generacion masiva de TXNS.
+    'MAX_TRANSACTIONS_PER_REQUEST': 100000,
 }
 
 # --- Cabeceras / politicas de seguridad (mitigan alertas de ZAP/Burp) ---

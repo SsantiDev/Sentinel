@@ -17,6 +17,7 @@ evaluaría un bot automático.
 | [06_BOT_EVALUADOR.md](06_BOT_EVALUADOR.md) | Contrato exacto para que un bot envíe datos y valide |
 | [07_CUMPLIMIENTO_ARQUITECTURA.md](07_CUMPLIMIENTO_ARQUITECTURA.md) | % de cumplimiento de arquitectura y principios |
 | [08_ESCALABILIDAD.md](08_ESCALABILIDAD.md) | Rendimiento con muchos datos y concurrencia (1000 / 1M usuarios) |
+| [09_ENTREGA_Y_URL_PUBLICA.md](09_ENTREGA_Y_URL_PUBLICA.md) | Sustentación: levantar, exponer con ngrok y generar TXNS |
 
 ## En una frase
 

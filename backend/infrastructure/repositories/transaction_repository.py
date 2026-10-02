@@ -48,6 +48,20 @@ class DjangoTransactionRepository(ITransactionRepository):
     def mark_transactions_anomalous(self, id_txns: List[int]) -> None:
         TransactionModel.objects.filter(id_txn__in=id_txns).update(is_anomalous=True)
 
+    def get_user_transactions_in_range(self, user, start, end) -> List[Transaction]:
+        rows = TransactionModel.objects.filter(
+            user=user, date__gte=start, date__lte=end,
+        ).order_by('date')
+        return [self._to_txn_entity(m) for m in rows]
+
+    def exists_overlapping_anomaly(self, user, window_start, window_end) -> bool:
+        # Hay solape si una anomalia previa del usuario cubre parte de esta ventana.
+        return TransactionAnomalyModel.objects.filter(
+            user=user,
+            window_start__lte=window_end,
+            window_end__gte=window_start,
+        ).exists()
+
     def save_anomaly(self, anomaly: TransactionAnomaly) -> TransactionAnomaly:
         m = TransactionAnomalyModel.objects.create(
             user=anomaly.user,

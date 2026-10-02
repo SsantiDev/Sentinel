@@ -59,6 +59,45 @@ def test_ingest_night_burst_creates_anomaly(client):
 
 
 @pytest.mark.django_db
+def test_streaming_single_posts_detect_burst(client):
+    # El generador manda las TXNS de a UNA (como en la sustentacion).
+    # La rafaga debe detectarse contra el historial, no solo dentro del request.
+    r1 = client.post('/api/v1/transactions/',
+                     _payload(70, 'b@b.com', '2026-09-23T21:00:01', 50000), format='json')
+    r2 = client.post('/api/v1/transactions/',
+                     _payload(71, 'b@b.com', '2026-09-23T21:00:02', 50000), format='json')
+    r3 = client.post('/api/v1/transactions/',
+                     _payload(72, 'b@b.com', '2026-09-23T21:00:03', 50000), format='json')
+
+    assert r1.data['anomalies_detected'] == 0
+    assert r2.data['anomalies_detected'] == 0
+    assert r3.data['anomalies_detected'] == 1   # la 3a completa la rafaga
+    assert TransactionAnomalyModel.objects.count() == 1
+
+
+@pytest.mark.django_db
+def test_streaming_does_not_duplicate_anomaly(client):
+    for i, sec in enumerate(['01', '02', '03', '04', '05']):
+        client.post('/api/v1/transactions/',
+                    _payload(80 + i, 'b@b.com', f'2026-09-23T21:00:{sec}', 50000), format='json')
+    # Una sola anomalia para la rafaga continua (sin duplicar por cada TXN).
+    assert TransactionAnomalyModel.objects.count() == 1
+
+
+@pytest.mark.django_db
+def test_streaming_different_users_no_anomaly(client):
+    # 3 usuarios distintos, uno tras otro -> NO es anomalia (ventanas separadas).
+    client.post('/api/v1/transactions/',
+                _payload(90, 'u1@x.com', '2026-09-23T21:00:01', 100), format='json')
+    client.post('/api/v1/transactions/',
+                _payload(91, 'u2@x.com', '2026-09-23T21:00:02', 100), format='json')
+    r3 = client.post('/api/v1/transactions/',
+                     _payload(92, 'u3@x.com', '2026-09-23T21:00:03', 100), format='json')
+    assert r3.data['anomalies_detected'] == 0
+    assert TransactionAnomalyModel.objects.count() == 0
+
+
+@pytest.mark.django_db
 def test_ingest_invalid_hash_is_rejected(client):
     bad = _payload(20, 'd@d.com', '2026-09-23T10:00:01', 100, bad_hash=True)
     res = client.post('/api/v1/transactions/', bad, format='json')
