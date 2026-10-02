@@ -10,10 +10,15 @@ def calculate_transaction_stats(counts: Dict) -> Dict:
     total_anomalies = counts['total_anomalies']
     distinct_users = counts['distinct_users']
 
+    # Porcentaje de transacciones que resultaron anomalas. El 'if total...'
+    # evita dividir por cero cuando aun no hay transacciones (sistema recien
+    # arrancado): en ese caso la tasa es 0.0 en vez de un error.
     anomaly_rate_percent = (
         round(total_anomalies / total_transactions * 100, 2)
         if total_transactions else 0.0
     )
+    # Promedio de transacciones por usuario. Igual: si todavia no hay usuarios,
+    # se devuelve 0.0 en vez de dividir por cero.
     avg_transactions_per_user = (
         round(total_transactions / distinct_users, 2) if distinct_users else 0.0
     )
