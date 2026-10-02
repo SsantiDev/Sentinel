@@ -37,24 +37,32 @@ POST /api/v1/transactions/
 
 ## Cómo se calcula el hash (clave para que el bot acierte)
 
-El hash es el **SHA-256** del texto de los campos unidos con `|` en este orden:
+El hash es una **firma HMAC-SHA256** del texto de los campos unidos con `|` en
+este orden, usando una **clave secreta compartida**:
 
 ```
-idTxn|user|date|value|paymentMethod
+hmac_sha256( SECRET, "idTxn|user|date|value|paymentMethod" )
 ```
 
-El servidor lo recalcula tomando **exactamente el texto** que viene en el JSON.
-Para evitar diferencias por decimales, **envía `value` como entero** (o como
-texto) y usa esa misma representación al calcular el hash.
+La clave `SECRET` se entrega junto con la URL (es la variable
+`TRANSACTIONS_HMAC_SECRET` del servidor). Sin ella **no se puede producir una
+firma válida**: así se evita que un tercero falsifique transacciones.
+
+El servidor recalcula la firma tomando **exactamente el texto** que viene en el
+JSON. Para evitar diferencias por decimales, **envía `value` como entero** (o
+como texto) y usa esa misma representación al calcular la firma.
 
 ### Reproducirlo en Python (idéntico al servidor)
 
 ```python
 import hashlib
+import hmac
+
+SECRET = "<la clave que te entregan junto con la URL>"
 
 def compute_hash(id_txn, user, date, value, payment_method):
     message = f"{id_txn}|{user}|{date}|{value}|{payment_method}"
-    return hashlib.sha256(message.encode("utf-8")).hexdigest()
+    return hmac.new(SECRET.encode("utf-8"), message.encode("utf-8"), hashlib.sha256).hexdigest()
 
 h = compute_hash(10001, "aa@aa.com", "2026-09-23T10:30:01.120", 50000, "Tarjeta")
 # -> úsalo como el campo "hash"
@@ -66,7 +74,7 @@ h = compute_hash(10001, "aa@aa.com", "2026-09-23T10:30:01.120", 50000, "Tarjeta"
 
 ## Respuesta del endpoint
 
-Siempre responde `201 Created` con un resumen:
+Responde con un resumen del procesamiento:
 
 ```json
 {
@@ -82,13 +90,15 @@ Siempre responde `201 Created` con un resumen:
 - `rejected`: las descartadas y por qué (`INVALID_PAYLOAD`, `INVALID_HASH`, `DUPLICATE`).
 - `anomalies_detected`: cuántas anomalías generó este lote.
 
-### Otros códigos
+### Códigos HTTP
 
 | Situación | Código HTTP | `code` |
 |---|---|---|
+| Se aceptó al menos una transacción | 201 | — |
+| Cuerpo válido pero NO se aceptó ninguna (todas rechazadas) | 422 | — |
 | Cuerpo no es objeto ni lista | 400 | `INVALID_BODY` |
 | Lote demasiado grande (>1000) | 413 | `BATCH_TOO_LARGE` |
-| Demasiadas peticiones | 429 | (throttling) |
+| Demasiadas peticiones (límite por IP) | 429 | (throttling) |
 
 ## Ejemplos listos para copiar
 

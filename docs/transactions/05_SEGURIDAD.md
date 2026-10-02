@@ -3,98 +3,148 @@
 El enunciado pide un endpoint **abierto** (para que un bot lo evalúe) pero a la
 vez **lo más seguro posible** frente a herramientas como OWASP ZAP o Burp
 Suite. Aquí se explica cómo se concilian esas dos cosas y qué protege cada
-medida.
+medida. Incluye las preguntas de seguridad que surgieron y el tema de memoria.
 
-## Lo primero: hash ≠ cifrado
+> Resultado del ensayo con un bot evaluador riguroso: **26/26 verificaciones
+> pasan** (integridad, formato, límites, detección, evasión, concurrencia,
+> métodos, cabeceras, control de acceso y códigos HTTP).
 
-Es la pregunta más común, así que seamos claros:
+## Lo primero: hash ≠ cifrado ≠ firma
 
-- **Hash (lo que usamos)** → garantiza **integridad**: detecta si alguien
-  cambió el monto, el usuario o cualquier campo en el camino. No oculta los
-  datos.
-- **Cifrado** → garantiza **confidencialidad**: oculta los datos para que
-  nadie los lea. En este sistema la confidencialidad la da el **transporte
-  HTTPS/TLS** (el tráfico viaja cifrado entre el cliente y el servidor).
+Es la confusión más común, así que seamos claros:
 
-> Resumen: los datos **viajan cifrados por HTTPS** y además llevan un **hash
-> que el backend recalcula y compara** para rechazar cualquier transacción
-> alterada.
+- **Hash** → garantiza **integridad**: detecta si alguien cambió un campo. No
+  oculta datos ni prueba quién lo envió.
+- **Cifrado** → garantiza **confidencialidad**: oculta los datos. Aquí lo da el
+  **transporte HTTPS/TLS** (el tráfico viaja cifrado).
+- **Firma con clave (HMAC)** → garantiza **autenticidad + integridad**: solo
+  quien tiene la clave secreta puede producir una firma válida. **Esto es lo que
+  usamos.**
 
-## Cómo se valida el hash
+## Cómo se firma y valida cada transacción (HMAC)
 
-1. Cada transacción llega con su campo `hash`.
-2. El backend **recalcula** el hash con los mismos datos:
-   `SHA-256( "idTxn|user|date|value|paymentMethod" )`.
-3. Compara el hash recibido con el recalculado usando una **comparación en
-   tiempo constante** (`hmac.compare_digest`), que evita ataques de medición
-   de tiempo (*timing attacks*).
-4. Si no coinciden → la transacción se **rechaza** (`INVALID_HASH`) y **no** se
-   guarda.
+Al inicio el sistema usaba un hash SHA-256 **público** (sin clave). Problema: la
+fórmula es pública, así que **cualquiera podía falsificar** una transacción
+calculando el mismo hash. Se cerró ese hueco pasando a **HMAC-SHA256 con una
+clave secreta**:
+
+1. Emisor y servidor comparten una clave secreta (`TRANSACTIONS_HMAC_SECRET`).
+2. El emisor firma: `hmac_sha256( SECRET, "idTxn|user|date|value|paymentMethod" )`
+   y manda esa firma en el campo `hash`.
+3. El servidor **recalcula** la firma con su copia de la clave y compara en
+   **tiempo constante** (`hmac.compare_digest`, evita *timing attacks*).
+4. Si no coinciden → se **rechaza** (`INVALID_HASH`) y **no** se guarda.
+
+Sin la clave, **no se puede fabricar una firma válida** → no se puede
+falsificar. La clave es **independiente de la `SECRET_KEY` de Django** (vive en
+`.env`, se comparte solo con el emisor legítimo/bot y se puede **rotar** por
+entorno sin afectar las sesiones de Django).
 
 Código: `backend/application/use_cases/transaction_hash.py`.
 
-## Por qué el endpoint es abierto (y por qué está bien)
+## El endpoint es abierto, pero firmado
 
-El POST `/api/v1/transactions/` **no pide autenticación** a propósito: así una
-evaluación automatizada puede enviarle datos sin credenciales. En cambio,
-**todo el dashboard y la configuración sí exigen ser administrador**. O sea:
-cualquiera puede *enviar* transacciones, pero solo un admin puede *ver* los
-resultados y *cambiar* la configuración.
+El POST `/api/v1/transactions/` **no pide login** (así el bot evalúa sin
+credenciales), pero **solo acepta transacciones firmadas con la clave**. En
+cambio, **todo el dashboard y la configuración exigen ser administrador**.
+Cualquiera puede *intentar* enviar, pero solo con la clave *entra*, y solo un
+admin puede *ver* resultados y *cambiar* la configuración.
+
+El simulador del front **no firma en el navegador** (sería exponer la clave en
+un cliente público): manda los parámetros a un acceso autenticado y **el
+servidor firma** por él.
+
+## Memoria: cómo se protege (y por qué no la pueden saturar)
+
+Pregunta importante: ¿alguien puede dañar o agotar la memoria? Capas que lo
+impiden:
+
+| Capa | Qué evita |
+|---|---|
+| **Firma HMAC** | Un externo sin la clave **no puede insertar ni una transacción** → no puede acumular datos para inflar memoria ni base. Lo que mande se descarta barato. |
+| **Límite de tamaño de cuerpo** (nginx `client_max_body_size 1m`) | Un payload gigante se **rechaza en el borde (413)** antes de cargarse en el backend. |
+| **Tope de lote (máx. 1000)** | Un solo request no puede traer más de 1000 transacciones a procesar (`413 BATCH_TOO_LARGE`). |
+| **Límite de peticiones** (`3000/min` por origen) | Inundación de requests. |
+| **Procesamiento eficiente** | La detección es una ventana deslizante O(n) con inserción en bloque; prueba de escala: **200.000 transacciones en < 15 s**. |
+
+Comprobado en vivo: un cuerpo de ~2 MB devuelve `413` sin llegar a procesarse.
 
 ## Medidas contra escáneres (ZAP / Burp) y abuso
 
 | Medida | Qué ataque mitiga | Dónde |
 |---|---|---|
-| **Throttling** (límite de peticiones) | Fuerza bruta / martilleo / DoS | `transactions_ingest: 600/min` en `settings/base.py` |
-| **Límite de tamaño de lote** (máx. 1000) | Agotar memoria con un payload gigante | Vista de ingesta (responde `413`) |
-| **Validación estricta de formato** | Entradas malformadas que tumben el servidor | Caso de uso de ingesta (responde `INVALID_PAYLOAD`, nunca error 500) |
-| **Hash en tiempo constante** | *Timing attack* sobre la comparación | `transaction_hash.py` |
-| **Errores genéricos con código** | Fuga de información interna | Respuestas tipo `{ "error": ..., "code": ... }` |
+| **Firma HMAC con clave** | Falsificación de transacciones | `transaction_hash.py` |
+| **Throttling** (`transactions_ingest: 3000/min`) | Fuerza bruta / martilleo / DoS | `settings/base.py` + `ScopedRateThrottle` en la vista |
+| **Límite de tamaño de lote** (máx. 1000) | Agotar memoria con muchos ítems | Vista de ingesta (`413`) |
+| **Límite de tamaño de cuerpo** (1 MB) | Agotar memoria con un payload enorme | `nginx/default.conf` (`413` en el borde) |
+| **Validación estricta de formato** | Entradas malformadas | Caso de uso (`INVALID_PAYLOAD`, nunca `500`) |
+| **Comparación en tiempo constante** | *Timing attack* sobre la firma | `transaction_hash.py` |
+| **Códigos HTTP correctos** | Respuestas ambiguas / fuga de info | `201/422/400/413/429` |
 | **`X-Content-Type-Options: nosniff`** | MIME sniffing | `HardeningMiddleware` |
 | **`Referrer-Policy: same-origin`** | Fuga de URLs por el referer | `HardeningMiddleware` |
-| **`Permissions-Policy`** | Uso no deseado de cámara/micrófono/GPS | `HardeningMiddleware` |
-| **`Content-Security-Policy` + `Cache-Control: no-store`** (en `/api/`) | Inyección de contenido / cacheo de datos | `HardeningMiddleware` |
-| **`X-Frame-Options: DENY`** | Clickjacking | `settings/base.py` + middleware de Django |
-| **HSTS** (en producción) | Downgrade a HTTP | `settings/production.py` |
-| **`DEBUG = False`** (en producción) | Fuga de stack traces | `settings/production.py` |
-| **Bloqueo por IP** | IPs abusivas ya marcadas | `HardeningMiddleware` (ya existía) |
+| **`Content-Security-Policy` + `Cache-Control: no-store`** (en `/api/`) | Inyección / cacheo de datos | `HardeningMiddleware` |
+| **`X-Frame-Options: DENY`** | Clickjacking | `settings/base.py` + middleware |
+| **ORM parametrizado** | Inyección SQL | Django ORM (probado con payloads de inyección) |
+| **Bloqueo por IP** | IPs abusivas marcadas | `HardeningMiddleware` |
+
+## Códigos HTTP del endpoint
+
+| Situación | Código |
+|---|---|
+| Se aceptó al menos una transacción | `201` |
+| Cuerpo válido pero no entró ninguna (todas rechazadas) | `422` |
+| Cuerpo no es objeto ni lista | `400` |
+| Lote > 1000 | `413` |
+| Cuerpo > 1 MB | `413` (nginx) |
+| Demasiadas peticiones | `429` |
+
+## Preguntas de seguridad frecuentes (y su respuesta)
+
+**¿Se puede falsificar una transacción?**
+No, si la clave no se filtra. La firma es HMAC con clave secreta; sin ella no se
+puede producir una firma válida. (Antes, con hash público, sí se podía: ese
+hueco se cerró.)
+
+**¿Cuál es la "SECRET KEY" que pide el bot?**
+`TRANSACTIONS_HMAC_SECRET`. Es una clave propia para firmar transacciones,
+**distinta** de la clave interna de Django. Se le entrega al bot junto con la
+URL y se rota por entorno.
+
+**¿Protege contra inyección SQL?**
+Sí: se usa el ORM de Django (consultas parametrizadas). Se probó con payloads de
+inyección y no afectan la base.
+
+**¿Y la detección de anomalías se puede engañar?**
+Parcialmente: como la detección usa la **fecha que trae cada transacción**
+(controlada por el emisor), alguien podría **separar las fechas** para no
+concentrarse y evitar la marca. Es una limitación inherente al enunciado (los
+datos de tiempo los pone el cliente). Mitigación posible a futuro: validar que
+la fecha no venga muy desfasada del momento real de recepción.
 
 ## Cómo validar la seguridad tú mismo
 
-### 1. Chequeo de despliegue de Django
-```bash
-cd backend
-DJANGO_SETTINGS_MODULE=config.settings.production python manage.py check --deploy
-```
-Debe quedar **sin advertencias**, salvo la del `SECRET_KEY`: esa depende del
-valor real en el `.env` de producción (debe ser largo y aleatorio, no el de
-ejemplo). No es un problema de código.
-
-### 2. Ver las cabeceras de seguridad
+### 1. Ver las cabeceras de seguridad
 ```bash
 curl -i -X POST http://localhost:8000/api/v1/transactions/ \
   -H "Content-Type: application/json" -d '{}'
 ```
 Fíjate en `X-Content-Type-Options`, `Referrer-Policy`, `Cache-Control`,
-`Content-Security-Policy`.
+`Content-Security-Policy`. (El cuerpo vacío responde `422`: válido pero sin
+transacciones aceptadas.)
 
-### 3. Escaneo con OWASP ZAP (baseline)
-Con la app corriendo:
+### 2. Escaneo con OWASP ZAP (baseline)
 ```bash
-# Requiere Docker
 docker run --rm -t ghcr.io/zaproxy/zaproxy:stable \
-  zap-baseline.py -t http://TU_HOST:8000/api/v1/transactions/
+  zap-baseline.py -t http://TU_HOST/api/v1/transactions/
 ```
-Las alertas típicas (cabeceras faltantes, cacheo, clickjacking) ya están
-cubiertas por las medidas de la tabla.
+Las alertas típicas (cabeceras, cacheo, clickjacking) ya están cubiertas.
 
 ## Lo que NO cubre (honestidad)
 
-- El hash usa **SHA-256 público** (sin clave secreta). Garantiza integridad y
-  es **reproducible por el bot evaluador**, pero no prueba *autenticidad* (no
-  demuestra *quién* envió la transacción). Si se quisiera eso, se usaría
-  **HMAC-SHA256 con una clave secreta** compartida — fácil de activar, pero
-  obligaría a que el emisor conozca esa clave.
-- Al ser un endpoint abierto, alguien podría enviar transacciones "basura" con
-  hash válido. La integridad se mantiene, pero no hay control de *origen*. Es
-  una consecuencia aceptada del requisito de endpoint abierto.
+- **Si la clave secreta se filtra**, se podría falsificar. Por eso se mantiene
+  fuera del código (`.env`), fuera del navegador, y **se rota** por entorno.
+- La detección confía en la **fecha declarada** por el cliente → evasión por
+  separación de fechas (ver arriba).
+- El throttling por origen se aplica detrás del proxy; para contar por IP real
+  del cliente habría que leer la cabecera de reenvío. Para una sola fuente
+  evaluadora es suficiente.

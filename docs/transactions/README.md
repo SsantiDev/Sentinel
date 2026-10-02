@@ -23,6 +23,8 @@ evaluaría un bot automático.
 | [08_ESCALABILIDAD.md](08_ESCALABILIDAD.md) | Rendimiento con muchos datos y concurrencia (1000 / 1M usuarios) |
 | [09_ENTREGA_Y_URL_PUBLICA.md](09_ENTREGA_Y_URL_PUBLICA.md) | Sustentación: levantar, exponer con ngrok y generar TXNS |
 | [10_COMO_EJECUTAR_TODO.md](10_COMO_EJECUTAR_TODO.md) | ⭐ Guía rápida paso a paso (Cloudflare, sin login) + prompt para Claude Code |
+| [11_MAPA_DE_ARCHIVOS.md](11_MAPA_DE_ARCHIVOS.md) | ¿En qué archivo vive cada cosa? Validación, hash, endpoint, detección, logs, dashboard |
+| [12_PREGUNTAS_DE_EXAMEN.md](12_PREGUNTAS_DE_EXAMEN.md) | Preguntas tipo examen con respuesta — enfoque ciberseguridad y casos límite |
 
 ## En una frase
 

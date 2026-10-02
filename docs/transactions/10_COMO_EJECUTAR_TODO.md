@@ -112,8 +112,9 @@ https://algo-aleatorio.trycloudflare.com
 curl -i -X POST https://TU-URL.trycloudflare.com/api/v1/transactions/ \
   -H "Content-Type: application/json" -d "{}"
 ```
-Debe responder **201** con `"accepted": 0` y un `rejected`. Eso confirma que el
-POST **llega** correctamente al backend.
+Debe responder **422** con `"accepted": 0` y un `rejected` (el cuerpo vacio es
+valido pero no entra ninguna). Eso confirma que el POST **llega** al backend.
+Una transaccion bien firmada responderia **201**.
 
 ---
 
