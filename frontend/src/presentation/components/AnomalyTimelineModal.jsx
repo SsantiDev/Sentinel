@@ -7,14 +7,17 @@ export function AnomalyTimelineModal({ data, loading, onClose }) {
   const isOpen = data !== null || loading
 
   const windowSeconds = data?.window_seconds ?? 0
-  const detectedAt = data ? new Date(data.anomaly.detected_at) : null
-  const windowStart = detectedAt ? new Date(detectedAt.getTime() - windowSeconds * 1000) : null
+  const windowStart = data ? new Date(data.anomaly.window_start) : null
+  const windowEnd = data ? new Date(data.anomaly.window_end) : null
+  const spanSeconds = windowStart && windowEnd
+    ? Math.max((windowEnd - windowStart) / 1000, 0.001)
+    : 1
 
-  const points = data?.events_in_window.map((e) => {
-    const occurredAt = new Date(e.occurred_at)
+  const points = data?.transactions_in_window.map((txn) => {
+    const occurredAt = new Date(txn.date)
     const offsetSeconds = (occurredAt - windowStart) / 1000
-    const percent = windowSeconds > 0 ? Math.min(100, Math.max(0, (offsetSeconds / windowSeconds) * 100)) : 0
-    return { ...e, occurredAt, percent }
+    const percent = Math.min(100, Math.max(0, (offsetSeconds / spanSeconds) * 100))
+    return { ...txn, occurredAt, percent }
   }) ?? []
 
   return (
@@ -56,7 +59,7 @@ export function AnomalyTimelineModal({ data, loading, onClose }) {
               ) : data && (
                 <>
                   <p className="text-text-secondary text-sm mb-8">
-                    {t('anomalies.timeline.windowSeconds', { seconds: windowSeconds })} — {data.anomaly.event_count} {t('anomalies.table.eventCount').toLowerCase()}
+                    {t('anomalies.timeline.windowSeconds', { seconds: windowSeconds })} — {data.anomaly.transaction_count} {t('anomalies.table.transactionCount').toLowerCase()}
                   </p>
 
                   <div className="relative h-16 mb-4">
@@ -69,7 +72,7 @@ export function AnomalyTimelineModal({ data, loading, onClose }) {
                       >
                         <div className="w-4 h-4 rounded-full bg-red-500 border-2 border-bg-card shadow-lg shadow-red-500/40" />
                         <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block whitespace-nowrap bg-[#1a1a2e] text-white text-[10px] px-2 py-1 rounded-lg">
-                          {p.occurredAt.toLocaleTimeString([], { hour12: false })} — {p.event_type}
+                          {p.occurredAt.toLocaleTimeString([], { hour12: false })} — {p.payment_method}
                         </div>
                       </div>
                     ))}
@@ -78,7 +81,7 @@ export function AnomalyTimelineModal({ data, loading, onClose }) {
                   <div className="flex justify-between text-[10px] text-text-secondary font-medium uppercase tracking-wider">
                     <span>{windowStart?.toLocaleTimeString([], { hour12: false })}</span>
                     <span className="text-red-500">{t('anomalies.timeline.inWindow')}</span>
-                    <span>{detectedAt?.toLocaleTimeString([], { hour12: false })}</span>
+                    <span>{windowEnd?.toLocaleTimeString([], { hour12: false })}</span>
                   </div>
                 </>
               )}

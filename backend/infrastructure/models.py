@@ -128,91 +128,81 @@ class BlockedIPModel(models.Model):
         return f"{self.ip_address} ({'BLOCKED' if self.is_blocked else 'Active'})"
 
 
-class PlanModel(models.Model):
-    name = models.CharField(max_length=50, unique=True)
-    max_checks_per_window = models.IntegerField()
-    window_seconds = models.IntegerField()
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+class DetectionConfigModel(models.Model):
+    """Configuracion editable (fila unica) de la deteccion por ventana
+    deslizante: duracion de la ventana y limite por franja horaria."""
+    window_seconds = models.IntegerField(default=3)
+    morning_limit = models.IntegerField(default=10)
+    afternoon_limit = models.IntegerField(default=6)
+    night_limit = models.IntegerField(default=3)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'plans'
+        db_table = 'detection_config'
 
     def __str__(self):
-        return self.name
+        return f'ventana={self.window_seconds}s (m/t/n={self.morning_limit}/{self.afternoon_limit}/{self.night_limit})'
 
 
-class SubscriptionModel(models.Model):
-    STATUS_CHOICES = [
-        ('active', 'Active'),
-        ('suspended', 'Suspended'),
-        ('cancelled', 'Cancelled'),
+class TransactionModel(models.Model):
+    PAYMENT_METHODS = [
+        ('Tarjeta', 'Tarjeta'),
+        ('Efectivo', 'Efectivo'),
+        ('Transferencia', 'Transferencia'),
+        ('PSE', 'PSE'),
+        ('Otro', 'Otro'),
     ]
 
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='subscription',
-    )
-    plan = models.ForeignKey(PlanModel, on_delete=models.PROTECT, related_name='subscriptions')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
-    started_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    id_txn = models.BigIntegerField(unique=True)
+    user = models.EmailField()
+    date = models.DateTimeField()
+    value = models.DecimalField(max_digits=18, decimal_places=2)
+    payment_method = models.CharField(max_length=30)
+    hash = models.CharField(max_length=128)
+    is_anomalous = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'subscriptions'
-
-    def __str__(self):
-        return f'{self.user.username} — {self.plan.name}'
-
-
-class UsageEventModel(models.Model):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='usage_events',
-    )
-    event_type = models.CharField(max_length=50)
-    occurred_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = 'usage_events'
-        ordering = ['-occurred_at']
+        db_table = 'transactions'
+        ordering = ['-date']
         indexes = [
-            models.Index(fields=['user', '-occurred_at'], name='usage_events_user_at_idx'),
+            models.Index(fields=['user', 'date'], name='transactions_user_date_idx'),
         ]
 
+    def __str__(self):
+        return f'#{self.id_txn} {self.user} {self.value}'
 
-class UsageAnomalyModel(models.Model):
+
+class TransactionAnomalyModel(models.Model):
     STATUS_CHOICES = [
         ('open', 'Open'),
         ('reviewed', 'Reviewed'),
         ('discarded', 'Discarded'),
     ]
+    LEVEL_CHOICES = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+    ]
 
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='usage_anomalies',
-    )
-    event_count = models.IntegerField()
+    user = models.EmailField()
+    transaction_count = models.IntegerField()
     window_seconds = models.IntegerField()
     threshold = models.IntegerField()
+    time_band = models.CharField(max_length=20)
+    level = models.CharField(max_length=10, choices=LEVEL_CHOICES, default='low')
+    total_value = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    window_start = models.DateTimeField()
+    window_end = models.DateTimeField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
     detected_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'usage_anomalies'
+        db_table = 'transaction_anomalies'
         ordering = ['-detected_at']
+        indexes = [
+            models.Index(fields=['user', 'window_start'], name='txn_anomaly_user_win_idx'),
+        ]
 
     def __str__(self):
-        return f'{self.user.username} — {self.event_count} en {self.window_seconds}s'
-
-
-@receiver(post_save, sender=settings.AUTH_USER_MODEL)
-def create_default_subscription(sender, instance, created, **kwargs):
-    if created:
-        free_plan = PlanModel.objects.filter(name='free').first()
-        if free_plan:
-            SubscriptionModel.objects.get_or_create(user=instance, defaults={'plan': free_plan})
+        return f'{self.user} — {self.transaction_count} en {self.window_seconds}s'

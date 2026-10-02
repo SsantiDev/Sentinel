@@ -1,0 +1,83 @@
+from datetime import datetime
+from decimal import Decimal
+
+from domain.entities.transaction import DetectionConfig, Transaction
+from application.use_cases.detect_transaction_anomalies import detect_transaction_anomalies
+
+
+def _txn(id_txn, user, dt, value=100):
+    return Transaction(
+        id_txn=id_txn, user=user, date=dt, value=Decimal(value),
+        payment_method='Tarjeta', hash='x',
+    )
+
+
+# Ventana de 3s; limite 3 en todas las franjas para probar la regla base.
+CONFIG = DetectionConfig(window_seconds=3, morning_limit=3, afternoon_limit=3, night_limit=3)
+
+
+def test_case1_multiple_transactions_same_user_is_anomaly():
+    txns = [
+        _txn(1, 'b@b.com', datetime(2026, 9, 23, 10, 0, 1)),
+        _txn(2, 'b@b.com', datetime(2026, 9, 23, 10, 0, 2)),
+        _txn(3, 'b@b.com', datetime(2026, 9, 23, 10, 0, 3)),
+    ]
+    anomalies = detect_transaction_anomalies(txns, CONFIG)
+    assert len(anomalies) == 1
+    assert anomalies[0].user == 'b@b.com'
+    assert anomalies[0].transaction_count == 3
+
+
+def test_case2_spread_transactions_are_normal():
+    txns = [
+        _txn(1, 'c@c.com', datetime(2026, 9, 23, 10, 0, 1)),
+        _txn(2, 'c@c.com', datetime(2026, 9, 23, 10, 0, 10)),
+        _txn(3, 'c@c.com', datetime(2026, 9, 23, 10, 1, 20)),
+    ]
+    assert detect_transaction_anomalies(txns, CONFIG) == []
+
+
+def test_transactions_not_concentrated_in_window_are_normal():
+    txns = [
+        _txn(1, 'b@b.com', datetime(2026, 9, 23, 10, 0, 1)),
+        _txn(2, 'b@b.com', datetime(2026, 9, 23, 10, 0, 5)),
+        _txn(3, 'b@b.com', datetime(2026, 9, 23, 10, 0, 9)),
+    ]
+    assert detect_transaction_anomalies(txns, CONFIG) == []
+
+
+def test_windows_are_independent_per_user():
+    txns = [
+        _txn(1, 'u1@x.com', datetime(2026, 9, 23, 10, 0, 1)),
+        _txn(2, 'u1@x.com', datetime(2026, 9, 23, 10, 0, 2)),
+        _txn(3, 'u1@x.com', datetime(2026, 9, 23, 10, 0, 3)),
+        _txn(4, 'u2@x.com', datetime(2026, 9, 23, 10, 0, 1)),
+        _txn(5, 'u2@x.com', datetime(2026, 9, 23, 10, 0, 2)),
+    ]
+    anomalies = detect_transaction_anomalies(txns, CONFIG)
+    assert len(anomalies) == 1
+    assert anomalies[0].user == 'u1@x.com'
+
+
+def test_time_band_limit_applies_morning_allows_more():
+    # Franja manana con limite 10: tres transacciones NO son anomalia.
+    config = DetectionConfig(window_seconds=3, morning_limit=10, afternoon_limit=6, night_limit=3)
+    txns = [
+        _txn(1, 'b@b.com', datetime(2026, 9, 23, 10, 0, 1)),
+        _txn(2, 'b@b.com', datetime(2026, 9, 23, 10, 0, 2)),
+        _txn(3, 'b@b.com', datetime(2026, 9, 23, 10, 0, 3)),
+    ]
+    assert detect_transaction_anomalies(txns, config) == []
+
+
+def test_night_band_limit_three_triggers():
+    config = DetectionConfig(window_seconds=3, morning_limit=10, afternoon_limit=6, night_limit=3)
+    txns = [
+        _txn(1, 'b@b.com', datetime(2026, 9, 23, 21, 0, 1)),
+        _txn(2, 'b@b.com', datetime(2026, 9, 23, 21, 0, 2)),
+        _txn(3, 'b@b.com', datetime(2026, 9, 23, 21, 0, 3)),
+    ]
+    anomalies = detect_transaction_anomalies(txns, config)
+    assert len(anomalies) == 1
+    assert anomalies[0].time_band == 'night'
+    assert anomalies[0].total_value == Decimal('300')

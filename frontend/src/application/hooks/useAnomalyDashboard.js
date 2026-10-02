@@ -13,9 +13,9 @@ export function useAnomalyDashboard() {
     setError(null)
     try {
       const [statsRes, trendsRes, anomaliesRes] = await Promise.all([
-        apiClient.get('/usage-anomalies/stats/'),
-        apiClient.get('/usage-anomalies/trends/'),
-        apiClient.get('/usage-anomalies/'),
+        apiClient.get('/transaction-anomalies/stats/'),
+        apiClient.get('/transaction-anomalies/trends/'),
+        apiClient.get('/transaction-anomalies/'),
       ])
       setStats(statsRes.data)
       setTrends(trendsRes.data)
@@ -32,13 +32,13 @@ export function useAnomalyDashboard() {
   }, [fetch])
 
   const updateStatus = useCallback(async (id, status) => {
-    const { data } = await apiClient.patch(`/usage-anomalies/${id}/`, { status })
+    const { data } = await apiClient.patch(`/transaction-anomalies/${id}/`, { status })
     setAnomalies((prev) => prev.map((a) => (a.id === id ? data : a)))
     return data
   }, [])
 
   const fetchTimeline = useCallback(async (id) => {
-    const { data } = await apiClient.get(`/usage-anomalies/${id}/timeline/`)
+    const { data } = await apiClient.get(`/transaction-anomalies/${id}/timeline/`)
     return data
   }, [])
 
