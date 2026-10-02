@@ -5,9 +5,16 @@ from rest_framework.test import APIClient
 from application.use_cases.transaction_hash import compute_transaction_hash
 from infrastructure.models import TransactionModel, TransactionAnomalyModel
 
+TEST_SECRET = 'test-hmac-secret'
+
+
+@pytest.fixture(autouse=True)
+def _hmac_secret(settings):
+    settings.TRANSACTIONS_HMAC_SECRET = TEST_SECRET
+
 
 def _payload(id_txn, user, date, value, method='Tarjeta', bad_hash=False):
-    txn_hash = compute_transaction_hash(str(id_txn), user, date, str(value), method)
+    txn_hash = compute_transaction_hash(TEST_SECRET, str(id_txn), user, date, str(value), method)
     if bad_hash:
         txn_hash = '0' * 64
     return {
@@ -101,7 +108,8 @@ def test_streaming_different_users_no_anomaly(client):
 def test_ingest_invalid_hash_is_rejected(client):
     bad = _payload(20, 'd@d.com', '2026-09-23T10:00:01', 100, bad_hash=True)
     res = client.post('/api/v1/transactions/', bad, format='json')
-    assert res.status_code == 201
+    # Cuerpo valido pero NADA aceptado -> 422.
+    assert res.status_code == 422
     assert res.data['accepted'] == 0
     assert res.data['rejected'][0]['reason'] == 'INVALID_HASH'
     assert TransactionModel.objects.count() == 0
@@ -196,3 +204,41 @@ def test_detection_config_get_and_update(admin_client):
     assert updated.status_code == 200
     assert updated.data['window_seconds'] == 5
     assert updated.data['night_limit'] == 2
+
+
+@pytest.mark.django_db
+def test_ingest_forged_signature_is_rejected(client):
+    # Firma hecha con OTRA clave (atacante sin el secreto) -> rechazada.
+    forged = compute_transaction_hash(
+        'clave-equivocada', '200', 'z@z.com', '2026-09-23T10:00:01', '100', 'Tarjeta',
+    )
+    body = {
+        'idTxn': 200, 'user': 'z@z.com', 'date': '2026-09-23T10:00:01',
+        'value': 100, 'paymentMethod': 'Tarjeta', 'hash': forged,
+    }
+    res = client.post('/api/v1/transactions/', body, format='json')
+    assert res.status_code == 422
+    assert res.data['accepted'] == 0
+    assert res.data['rejected'][0]['reason'] == 'INVALID_HASH'
+    assert TransactionModel.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_simulate_requires_authentication(client):
+    res = client.post('/api/v1/transactions/simulate/', {
+        'user': 'a@a.com', 'value': 100, 'paymentMethod': 'Tarjeta',
+        'date': '2026-09-23T21:00:00', 'count': 3, 'intervalSeconds': 1,
+    }, format='json')
+    assert res.status_code in (401, 403)
+
+
+@pytest.mark.django_db
+def test_simulate_signs_server_side_and_detects_anomaly(admin_client):
+    # El servidor genera y firma; 4 de noche en la misma ventana (limite 3).
+    res = admin_client.post('/api/v1/transactions/simulate/', {
+        'user': 'sim@demo.com', 'value': 50000, 'paymentMethod': 'Tarjeta',
+        'date': '2026-09-23T21:00:00', 'count': 4, 'intervalSeconds': 0,
+    }, format='json')
+    assert res.status_code == 201
+    assert res.data['accepted'] == 4
+    assert res.data['anomalies_detected'] == 1

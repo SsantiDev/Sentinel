@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from rest_framework import serializers
 
 from infrastructure.models import DetectionConfigModel, TransactionAnomalyModel
@@ -44,3 +46,21 @@ class TransactionInputSerializer(serializers.Serializer):
     value = serializers.DecimalField(max_digits=18, decimal_places=2)
     paymentMethod = serializers.CharField()
     hash = serializers.CharField()
+
+
+class TransactionSimulateSerializer(serializers.Serializer):
+    """Parametros del simulador del front. El servidor genera y firma las
+    transacciones (el navegador no conoce la clave secreta)."""
+    user = serializers.EmailField()
+    value = serializers.IntegerField(min_value=0)
+    paymentMethod = serializers.CharField()
+    date = serializers.CharField()
+    count = serializers.IntegerField(min_value=1, max_value=1000)
+    intervalSeconds = serializers.IntegerField(min_value=0, max_value=86400)
+
+    def validate_date(self, value):
+        try:
+            datetime.fromisoformat(value)
+        except ValueError:
+            raise serializers.ValidationError('Fecha ISO 8601 invalida.')
+        return value

@@ -2,8 +2,9 @@
 """
 Generador de transacciones (TXNS) para la sustentacion.
 
-Envia transacciones al endpoint publico de ingesta, con el hash SHA-256
-calculado igual que el backend: sha256( idTxn|user|date|value|paymentMethod ).
+Envia transacciones al endpoint publico de ingesta, con la firma HMAC-SHA256
+calculada igual que el backend usando la clave secreta compartida:
+hmac_sha256( secret, idTxn|user|date|value|paymentMethod ).
 
 Genera trafico mayormente NORMAL y, para algunos usuarios, RAFAGAS que deben
 dispararse como anomalias (segun la franja horaria configurada en el sistema).
@@ -17,6 +18,8 @@ Requisitos: paquete 'requests' (ya esta en requirements.txt).
 """
 import argparse
 import hashlib
+import hmac
+import os
 import random
 import time
 from datetime import datetime, timedelta
@@ -26,12 +29,12 @@ import requests
 PAYMENT_METHODS = ['Tarjeta', 'Efectivo', 'Transferencia', 'PSE', 'Otro']
 
 
-def compute_hash(id_txn, user, date, value, payment_method):
+def compute_hash(secret, id_txn, user, date, value, payment_method):
     message = f"{id_txn}|{user}|{date}|{value}|{payment_method}"
-    return hashlib.sha256(message.encode('utf-8')).hexdigest()
+    return hmac.new(secret.encode('utf-8'), message.encode('utf-8'), hashlib.sha256).hexdigest()
 
 
-def make_txn(id_txn, user, when, value):
+def make_txn(secret, id_txn, user, when, value):
     date = when.strftime('%Y-%m-%dT%H:%M:%S')
     method = random.choice(PAYMENT_METHODS)
     return {
@@ -40,11 +43,11 @@ def make_txn(id_txn, user, when, value):
         'date': date,
         'value': value,
         'paymentMethod': method,
-        'hash': compute_hash(id_txn, user, date, value, method),
+        'hash': compute_hash(secret, id_txn, user, date, value, method),
     }
 
 
-def build_dataset(count, anomaly_users, base_hour):
+def build_dataset(secret, count, anomaly_users, base_hour):
     """Devuelve una lista de transacciones: normales + algunas rafagas."""
     txns = []
     tid = int(time.time() * 1000)  # base de ids unica por corrida
@@ -57,7 +60,7 @@ def build_dataset(count, anomaly_users, base_hour):
         for i in range(random.randint(4, 6)):
             tid += 1
             when = start + timedelta(milliseconds=i * 400)
-            txns.append(make_txn(tid, user, when, random.randint(10000, 90000)))
+            txns.append(make_txn(secret, tid, user, when, random.randint(10000, 90000)))
 
     # Normales: transacciones espaciadas > 5s (nunca se concentran).
     normal_needed = max(0, count - len(txns))
@@ -65,7 +68,7 @@ def build_dataset(count, anomaly_users, base_hour):
         tid += 1
         user = f'user{random.randint(0, 200)}@demo.com'
         when = base + timedelta(seconds=i * 6 + random.randint(0, 3))
-        txns.append(make_txn(tid, user, when, random.randint(1000, 100000)))
+        txns.append(make_txn(secret, tid, user, when, random.randint(1000, 100000)))
 
     random.shuffle(txns)  # llegan desordenadas, como en la vida real
     return txns
@@ -84,12 +87,17 @@ def main():
     parser.add_argument('--batch-size', type=int, default=100, help='TXNS por peticion (1 = streaming)')
     parser.add_argument('--delay', type=float, default=0.0, help='segundos entre peticiones')
     parser.add_argument('--base-hour', type=int, default=21, help='hora base (21 = noche, limite 3)')
+    parser.add_argument('--secret', default=os.environ.get('TRANSACTIONS_HMAC_SECRET', ''),
+                        help='clave para firmar (HMAC); por defecto toma TRANSACTIONS_HMAC_SECRET')
     args = parser.parse_args()
+
+    if not args.secret:
+        parser.error('falta la clave: usa --secret o la variable TRANSACTIONS_HMAC_SECRET')
 
     endpoint = args.url.rstrip('/') + '/api/v1/transactions/'
     headers = {'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true'}
 
-    dataset = build_dataset(args.count, args.anomaly_users, args.base_hour)
+    dataset = build_dataset(args.secret, args.count, args.anomaly_users, args.base_hour)
     print(f'Enviando {len(dataset)} transacciones a {endpoint} ...')
 
     accepted = rejected = anomalies = 0

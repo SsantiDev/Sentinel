@@ -14,6 +14,15 @@ from application.use_cases.detect_transaction_anomalies import detect_transactio
 
 @dataclass
 class IngestResult:
+    """Resultado de procesar un lote de transacciones.
+
+    Campos:
+        accepted:           entidades guardadas correctamente.
+        rejected:           descartadas, cada una con {idTxn, reason}. Motivos:
+                            INVALID_PAYLOAD (formato), INVALID_HASH (firma),
+                            DUPLICATE (idTxn repetido).
+        anomalies_detected: cuantas anomalias genero este lote.
+    """
     accepted: List[Transaction] = field(default_factory=list)
     rejected: List[Dict] = field(default_factory=list)
     anomalies_detected: int = 0
@@ -49,17 +58,23 @@ def _parse_one(item: Dict) -> Transaction:
 def ingest_transactions(
     payloads: List[Dict],
     repo: ITransactionRepository,
+    secret: str,
 ) -> IngestResult:
     """
     Procesa un lote de transacciones:
-      1. valida estructura y hash SHA-256 de cada una,
+      1. valida estructura y firma HMAC-SHA256 de cada una,
       2. descarta duplicadas (idTxn ya registrado),
       3. persiste las validas,
       4. corre la ventana deslizante por usuario y registra anomalias.
+
+    'secret' es la clave compartida con la que el emisor firma cada transaccion;
+    sin ella una firma valida no puede fabricarse.
     """
     result = IngestResult()
     valid: List[Transaction] = []
 
+    # Se valida cada transaccion en 3 filtros en orden: formato -> firma ->
+    # duplicado. La que falla un filtro se descarta con su motivo y se sigue.
     for item in payloads:
         try:
             txn = _parse_one(item)
@@ -67,8 +82,10 @@ def ingest_transactions(
             result.rejected.append({'idTxn': item.get('idTxn'), 'reason': 'INVALID_PAYLOAD'})
             continue
 
+        # Filtro 2: la firma HMAC debe coincidir con la recalculada con la clave.
         ok = is_valid_hash(
             txn.hash,
+            secret,
             str(item['idTxn']), txn.user, str(item['date']),
             str(item['value']), txn.payment_method,
         )
@@ -76,6 +93,7 @@ def ingest_transactions(
             result.rejected.append({'idTxn': txn.id_txn, 'reason': 'INVALID_HASH'})
             continue
 
+        # Filtro 3: el idTxn no debe existir ya en la base (anti-reenvio).
         if repo.id_txn_exists(txn.id_txn):
             result.rejected.append({'idTxn': txn.id_txn, 'reason': 'DUPLICATE'})
             continue

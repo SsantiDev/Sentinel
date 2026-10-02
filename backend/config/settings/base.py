@@ -9,6 +9,11 @@ SECRET_KEY = env('SECRET_KEY')
 DEBUG = env.bool('DEBUG', default=False)
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[])
 
+# Clave secreta e independiente para firmar la ingesta de transacciones (HMAC).
+# No reutilizar SECRET_KEY: esta clave se comparte con el emisor externo (bot
+# evaluador) y debe poder rotarse sin afectar las sesiones de Django.
+TRANSACTIONS_HMAC_SECRET = env('TRANSACTIONS_HMAC_SECRET', default='')
+
 INSTALLED_APPS = [
     'jazzmin',
     'django.contrib.admin',
@@ -96,11 +101,14 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_THROTTLE_RATES': {
         'public_check': '10/hour',
+        # Limite de peticiones por IP para la ingesta publica de transacciones.
+        # Es generoso (permite el envio continuo del bot evaluador, incluso en
+        # modo streaming) pero acota una inundacion/DoS desde una misma IP.
+        'transactions_ingest': '3000/min',
     },
-    # Tamano maximo de un lote de transacciones por request (evita que un
-    # payload gigante agote memoria). El endpoint de ingesta NO tiene
-    # throttling para no bloquear la generacion masiva de TXNS.
-    'MAX_TRANSACTIONS_PER_REQUEST': 100000,
+    # Tamano maximo de un lote de transacciones por request. Evita que un
+    # payload gigante agote memoria; si se supera se responde 413.
+    'MAX_TRANSACTIONS_PER_REQUEST': 1000,
 }
 
 # --- Cabeceras / politicas de seguridad (mitigan alertas de ZAP/Burp) ---

@@ -7,16 +7,6 @@ import { useAuth } from '../../application/hooks/useAuth'
 
 const PAYMENT_METHODS = ['Tarjeta', 'Efectivo', 'Transferencia', 'PSE', 'Otro']
 
-// SHA-256 en el navegador (Web Crypto), idéntico al backend:
-// sha256( idTxn|user|date|value|paymentMethod )
-async function sha256Hex(message) {
-  const bytes = new TextEncoder().encode(message)
-  const digest = await crypto.subtle.digest('SHA-256', bytes)
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('')
-}
-
 function pad(n) {
   return String(n).padStart(2, '0')
 }
@@ -51,14 +41,6 @@ export function TransactionSimulatorPage() {
 
   const setField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }))
 
-  const buildTransaction = async (idTxn, dateStr) => {
-    const value = Math.max(0, parseInt(form.value, 10) || 0)
-    const user = form.user.trim()
-    const message = `${idTxn}|${user}|${dateStr}|${value}|${form.paymentMethod}`
-    const hash = await sha256Hex(message)
-    return { idTxn, user, date: dateStr, value, paymentMethod: form.paymentMethod, hash }
-  }
-
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError(null)
@@ -71,18 +53,18 @@ export function TransactionSimulatorPage() {
 
     setSending(true)
     try {
-      const base = new Date(form.date)
-      const n = burst.enabled ? Math.max(1, parseInt(burst.count, 10) || 1) : 1
-      const step = Math.max(0, parseInt(burst.intervalSeconds, 10) || 0)
-      const baseId = Date.now()
-
-      const payload = []
-      for (let i = 0; i < n; i++) {
-        const d = new Date(base.getTime() + i * step * 1000)
-        payload.push(await buildTransaction(baseId + i, formatLocal(d)))
+      // El servidor genera y firma las transacciones con la clave secreta;
+      // el navegador solo envia los parametros del simulador.
+      const body = {
+        user: form.user.trim(),
+        value: Math.max(0, parseInt(form.value, 10) || 0),
+        paymentMethod: form.paymentMethod,
+        date: form.date,
+        count: burst.enabled ? Math.max(1, parseInt(burst.count, 10) || 1) : 1,
+        intervalSeconds: burst.enabled ? Math.max(0, parseInt(burst.intervalSeconds, 10) || 0) : 0,
       }
 
-      const { data } = await apiClient.post('/transactions/', payload)
+      const { data } = await apiClient.post('/transactions/simulate/', body)
       setResult(data)
     } catch (err) {
       setError(err.response?.data?.error || err.message)

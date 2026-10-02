@@ -10,6 +10,7 @@ from interfaces.http.views.public_views import PublicCheckView
 from interfaces.http.views.scheduler_views import SchedulerStatusView
 from interfaces.http.views.transaction_views import (
     TransactionIngestView, TransactionAnomalyViewSet, DetectionConfigView,
+    TransactionSimulateView,
 )
 
 router = DefaultRouter()
@@ -28,5 +29,6 @@ urlpatterns = [
     path('public/check/', PublicCheckView.as_view(), name='public-check'),
     path('scheduler/status/', SchedulerStatusView.as_view(), name='scheduler-status'),
     path('transactions/', TransactionIngestView.as_view(), name='transactions-ingest'),
+    path('transactions/simulate/', TransactionSimulateView.as_view(), name='transactions-simulate'),
     path('detection-config/', DetectionConfigView.as_view(), name='detection-config'),
 ]
