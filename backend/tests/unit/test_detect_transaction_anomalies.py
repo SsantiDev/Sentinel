@@ -81,3 +81,26 @@ def test_night_band_limit_three_triggers():
     assert len(anomalies) == 1
     assert anomalies[0].time_band == 'night'
     assert anomalies[0].total_value == Decimal('300')
+
+
+def test_sustained_burst_is_a_single_anomaly():
+    # 6 transacciones seguidas (limite 3) = UNA sola anomalia que cubre las 6.
+    txns = [_txn(i, 'b@b.com', datetime(2026, 9, 23, 10, 0, 0, i * 100_000)) for i in range(6)]
+    anomalies = detect_transaction_anomalies(txns, CONFIG)
+    assert len(anomalies) == 1
+    assert anomalies[0].transaction_count == 6
+
+
+def test_two_separate_bursts_are_two_anomalies():
+    # Dos rafagas separadas por un hueco mayor a la ventana -> dos anomalias.
+    txns = [
+        _txn(1, 'b@b.com', datetime(2026, 9, 23, 10, 0, 0)),
+        _txn(2, 'b@b.com', datetime(2026, 9, 23, 10, 0, 1)),
+        _txn(3, 'b@b.com', datetime(2026, 9, 23, 10, 0, 2)),
+        # hueco de 20s (> ventana) -> nuevo episodio
+        _txn(4, 'b@b.com', datetime(2026, 9, 23, 10, 0, 22)),
+        _txn(5, 'b@b.com', datetime(2026, 9, 23, 10, 0, 23)),
+        _txn(6, 'b@b.com', datetime(2026, 9, 23, 10, 0, 24)),
+    ]
+    anomalies = detect_transaction_anomalies(txns, CONFIG)
+    assert len(anomalies) == 2
