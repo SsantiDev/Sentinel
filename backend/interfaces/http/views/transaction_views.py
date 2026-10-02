@@ -3,7 +3,6 @@ from rest_framework import mixins, viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.throttling import ScopedRateThrottle
 
 from infrastructure.models import TransactionAnomalyModel
 from infrastructure.repositories.transaction_repository import DjangoTransactionRepository
@@ -26,13 +25,13 @@ class TransactionIngestView(APIView):
     """POST publico de ingesta. Acepta una transaccion o una lista.
 
     Es intencionalmente abierto (sin autenticacion) para que una evaluacion
-    automatizada pueda enviar transacciones. La proteccion se basa en: hash
-    de integridad por transaccion, throttling, limite de tamano de lote y
-    cabeceras de seguridad.
+    automatizada pueda enviar un flujo continuo de transacciones (generacion
+    de TXNS durante varios minutos). Por eso NO lleva throttling: la
+    proteccion se basa en el hash de integridad por transaccion, el limite de
+    tamano de lote y las cabeceras de seguridad.
     """
     permission_classes = [permissions.AllowAny]
-    throttle_classes = [ScopedRateThrottle]
-    throttle_scope = 'transactions_ingest'
+    throttle_classes = []
 
     def post(self, request):
         data = request.data

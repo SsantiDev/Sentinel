@@ -1,5 +1,6 @@
+from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Dict, List
 
@@ -87,20 +88,34 @@ def ingest_transactions(
     result.accepted = repo.save_transactions(valid)
 
     config = repo.get_config()
-    anomalies = detect_transaction_anomalies(result.accepted, config)
+    window = timedelta(seconds=config.window_seconds)
+
+    # Agrupa las transacciones recien aceptadas por usuario. La deteccion se
+    # hace contra el HISTORIAL del usuario (no solo este lote), para que una
+    # rafaga que llega en peticiones separadas tambien se detecte.
+    new_by_user = defaultdict(list)
+    for txn in result.accepted:
+        new_by_user[txn.user].append(txn)
 
     anomalous_ids = set()
-    for anomaly in anomalies:
-        repo.save_anomaly(anomaly)
-        for txn in result.accepted:
-            if (
-                txn.user == anomaly.user
-                and anomaly.window_start <= txn.date <= anomaly.window_end
+    for user, user_new in new_by_user.items():
+        lo = min(t.date for t in user_new) - window
+        hi = max(t.date for t in user_new)
+        history = repo.get_user_transactions_in_range(user, lo, hi)
+
+        for anomaly in detect_transaction_anomalies(history, config):
+            # Evita reportar dos veces la misma rafaga (peticiones sucesivas).
+            if repo.exists_overlapping_anomaly(
+                anomaly.user, anomaly.window_start, anomaly.window_end
             ):
-                anomalous_ids.add(txn.id_txn)
+                continue
+            repo.save_anomaly(anomaly)
+            result.anomalies_detected += 1
+            for txn in history:
+                if anomaly.window_start <= txn.date <= anomaly.window_end:
+                    anomalous_ids.add(txn.id_txn)
 
     if anomalous_ids:
         repo.mark_transactions_anomalous(list(anomalous_ids))
 
-    result.anomalies_detected = len(anomalies)
     return result
