@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAnomalyDashboard } from '../../application/hooks/useAnomalyDashboard'
 import { AnomalyStatCards } from '../components/AnomalyStatCards'
+import { DetectionConfigPanel } from '../components/DetectionConfigPanel'
 import { AnomalyBreakdown } from '../components/AnomalyBreakdown'
 import { AnomalyHourlyChart } from '../components/AnomalyHourlyChart'
 import { AnomalyTrendChart } from '../components/AnomalyTrendChart'
@@ -44,6 +45,8 @@ export function AnomalyDashboardPage() {
       </div>
 
       <AnomalyStatCards stats={stats} />
+
+      <DetectionConfigPanel />
 
       <AnomalyBreakdown stats={stats} />
 

@@ -16,6 +16,7 @@ evaluaría un bot automático.
 | [05_SEGURIDAD.md](05_SEGURIDAD.md) | Hash, endpoint abierto, protección contra ZAP/Burp, qué protege y qué no |
 | [06_BOT_EVALUADOR.md](06_BOT_EVALUADOR.md) | Contrato exacto para que un bot envíe datos y valide |
 | [07_CUMPLIMIENTO_ARQUITECTURA.md](07_CUMPLIMIENTO_ARQUITECTURA.md) | % de cumplimiento de arquitectura y principios |
+| [08_ESCALABILIDAD.md](08_ESCALABILIDAD.md) | Rendimiento con muchos datos y concurrencia (1000 / 1M usuarios) |
 
 ## En una frase
 

@@ -16,6 +16,12 @@ from application.use_cases.calculate_transaction_trends import calculate_transac
 from domain.entities.transaction import DetectionConfig
 
 
+class IsSuperUser(permissions.BasePermission):
+    """Solo super administradores (is_superuser)."""
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_superuser)
+
+
 class TransactionIngestView(APIView):
     """POST publico de ingesta. Acepta una transaccion o una lista.
 
@@ -109,8 +115,8 @@ class TransactionAnomalyViewSet(
 
 
 class DetectionConfigView(APIView):
-    """GET/PUT de la configuracion de deteccion (solo admin)."""
-    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
+    """GET/PUT de la configuracion de deteccion (solo super administradores)."""
+    permission_classes = [permissions.IsAuthenticated, IsSuperUser]
 
     def get(self, request):
         repo = DjangoTransactionRepository()

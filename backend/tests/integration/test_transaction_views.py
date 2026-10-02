@@ -134,6 +134,16 @@ def test_admin_dashboard_endpoints(admin_client, client):
 
 
 @pytest.mark.django_db
+def test_detection_config_requires_superuser(db):
+    # staff pero NO superusuario -> 403
+    staff = User.objects.create_user(username='staff', password='pass1234', is_staff=True)
+    c = APIClient()
+    c.force_authenticate(user=staff)
+    assert c.get('/api/v1/detection-config/').status_code == 403
+    assert c.put('/api/v1/detection-config/', {'window_seconds': 5}, format='json').status_code == 403
+
+
+@pytest.mark.django_db
 def test_detection_config_get_and_update(admin_client):
     res = admin_client.get('/api/v1/detection-config/')
     assert res.status_code == 200
