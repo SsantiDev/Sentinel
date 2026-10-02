@@ -12,6 +12,7 @@ import { Layout } from './presentation/components/Layout'
 import { useAuth } from './application/hooks/useAuth'
 import { AdminUsersPage } from './presentation/pages/AdminUsersPage'
 import { AnomalyDashboardPage } from './presentation/pages/AnomalyDashboardPage'
+import { TransactionSimulatorPage } from './presentation/pages/TransactionSimulatorPage'
 import { TopologyPage } from './presentation/pages/TopologyPage'
 import { RegisterPage } from './presentation/pages/RegisterPage'
 import { VerifyEmailPage } from './presentation/pages/VerifyEmailPage'
@@ -47,6 +48,7 @@ export default function App() {
           <Route path="/topology" element={<ProtectedRoute><TopologyPage /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="/admin" element={<SuperProtectedRoute><AdminUsersPage /></SuperProtectedRoute>} />
+          <Route path="/transactions" element={<ProtectedRoute><TransactionSimulatorPage /></ProtectedRoute>} />
           <Route path="/anomalies" element={<SuperProtectedRoute><AnomalyDashboardPage /></SuperProtectedRoute>} />
         </Routes>
       </BrowserRouter>

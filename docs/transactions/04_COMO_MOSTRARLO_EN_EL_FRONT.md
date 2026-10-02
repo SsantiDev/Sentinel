@@ -8,8 +8,32 @@ en la exposición sepas exactamente dónde señalar.
 - El dashboard está en la ruta **`/anomalies`**.
 - Solo lo ve un usuario **superusuario** (está protegido). Con un usuario
   normal **no aparece** el ítem en el menú.
-- Para que haya algo que mostrar, primero **envía transacciones** por el POST
-  (ver `06_BOT_EVALUADOR.md`): manda un lote normal y un lote anómalo.
+- Para que haya algo que mostrar, primero **genera transacciones**. Hay dos
+  formas:
+  1. **Desde el front (recomendado para la demo):** la pantalla
+     **"Transacciones"** (ruta `/transactions`, visible para cualquier usuario
+     logueado). Es un **simulador de pago**: llenas el formulario y, al enviar,
+     el navegador calcula el hash y manda la transacción al sistema.
+  2. **Por API/curl:** ver `06_BOT_EVALUADOR.md`.
+
+## El simulador de pago (dónde se "producen" las transacciones)
+
+El endpoint de transacciones es un **punto de integración**: en un sistema
+real lo alimenta una pasarela de pagos o el checkout (por ejemplo, la compra de
+una membresía o un producto). El simulador del front cumple ese papel para la
+demo.
+
+Se ve al momento de entrar a **"Transacciones"** en el menú:
+
+- Llenas **usuario, valor, método de pago y fecha**.
+- Opción **"Simular ráfaga"**: envía varias transacciones del mismo usuario
+  separadas por pocos segundos. → *Así disparas una anomalía en vivo* (p. ej.
+  3 transacciones, intervalo 1s, con fecha en horario nocturno).
+- Al enviar, muestra el **resultado**: aceptadas, rechazadas y **anomalías
+  detectadas**, con un enlace directo al dashboard.
+
+> Flujo completo para la exposición: **Transacciones** (generar una ráfaga) →
+> **Anomalías** (verla reflejada en tarjetas, tabla y línea de tiempo).
 
 ## Dónde se ve cada requisito
 
