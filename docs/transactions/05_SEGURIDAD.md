@@ -42,13 +42,26 @@ entorno sin afectar las sesiones de Django).
 
 Código: `backend/application/use_cases/transaction_hash.py`.
 
-## El endpoint es abierto, pero firmado
+## El endpoint es abierto; la firma es configurable
 
 El POST `/api/v1/transactions/` **no pide login** (así el bot evalúa sin
-credenciales), pero **solo acepta transacciones firmadas con la clave**. En
-cambio, **todo el dashboard y la configuración exigen ser administrador**.
-Cualquiera puede *intentar* enviar, pero solo con la clave *entra*, y solo un
-admin puede *ver* resultados y *cambiar* la configuración.
+credenciales). La exigencia de firma la puede **encender o apagar en vivo un
+super administrador** desde el panel de configuración de detección (sin
+reiniciar nada); el valor vive en la base. La variable de entorno
+`TRANSACTIONS_REQUIRE_SIGNATURE` solo fija el valor **inicial**. Modos:
+
+- **Producción (`True`):** solo acepta transacciones **firmadas con la clave**
+  (HMAC); sin ella no entra ninguna. Es la protección anti-falsificación.
+- **Laboratorio / evaluador (`False`, por defecto):** la firma **no se exige**.
+  El servidor valida el **formato** y descarta la basura, pero una transacción
+  bien formada entra aunque su hash no coincida. Esto es necesario porque el bot
+  evaluador externo **no comparte la clave secreta** (sus hashes son
+  aleatorios): si se exigiera firma, rechazaría todo y nunca se detectarían
+  anomalías.
+
+En **ambos** modos, **todo el dashboard y la configuración exigen ser
+administrador**: cualquiera puede *intentar* enviar, pero solo un admin puede
+*ver* resultados y *cambiar* la configuración.
 
 El simulador del front **no firma en el navegador** (sería exponer la clave en
 un cliente público): manda los parámetros a un acceso autenticado y **el
@@ -61,13 +74,17 @@ impiden:
 
 | Capa | Qué evita |
 |---|---|
-| **Firma HMAC** | Un externo sin la clave **no puede insertar ni una transacción** → no puede acumular datos para inflar memoria ni base. Lo que mande se descarta barato. |
+| **Firma HMAC** (si está activa) | En modo producción, un externo sin la clave **no puede insertar ni una transacción** → no puede acumular datos para inflar memoria ni base. |
+| **Validación de formato robusta** | Entradas malformadas (tipos inválidos, booleanos como id/monto, fechas imposibles) se descartan sin tocar la base. **Nunca** producen un error de servidor (`500`). |
+| **Deduplicación en el lote** | Varios `idTxn` repetidos en un mismo request no rompen la inserción en bloque (antes causaban `500` por clave única); el repetido se descarta como `DUPLICATE`. |
 | **Límite de tamaño de cuerpo** (nginx `client_max_body_size 1m`) | Un payload gigante se **rechaza en el borde (413)** antes de cargarse en el backend. |
 | **Tope de lote (máx. 1000)** | Un solo request no puede traer más de 1000 transacciones a procesar (`413 BATCH_TOO_LARGE`). |
 | **Límite de peticiones** (`3000/min` por origen) | Inundación de requests. |
 | **Procesamiento eficiente** | La detección es una ventana deslizante O(n) con inserción en bloque; prueba de escala: **200.000 transacciones en < 15 s**. |
 
-Comprobado en vivo: un cuerpo de ~2 MB devuelve `413` sin llegar a procesarse.
+Comprobado en vivo: un cuerpo de ~2 MB devuelve `413` sin llegar a procesarse, y
+el dataset de fuzzing del evaluador (datos basura + hashes aleatorios) se procesa
+sin un solo `500`: la basura se rechaza y las transacciones válidas se guardan.
 
 ## Medidas contra escáneres (ZAP / Burp) y abuso
 
@@ -101,9 +118,19 @@ Comprobado en vivo: un cuerpo de ~2 MB devuelve `413` sin llegar a procesarse.
 ## Preguntas de seguridad frecuentes (y su respuesta)
 
 **¿Se puede falsificar una transacción?**
-No, si la clave no se filtra. La firma es HMAC con clave secreta; sin ella no se
-puede producir una firma válida. (Antes, con hash público, sí se podía: ese
-hueco se cerró.)
+En modo producción no, si la clave no se filtra: la firma es HMAC con clave
+secreta y sin ella no se puede producir una firma válida. En modo laboratorio la
+firma no se exige (a propósito, ver abajo), así que la protección anti-falsificación
+se apoya en que el endpoint esté detrás de HTTPS y en los demás límites.
+
+**¿Por qué el evaluador recibía `422` en todo y cómo se resolvió?**
+El bot evaluador manda hashes **aleatorios** (no comparte nuestra clave, y sus
+hashes no coinciden con ningún esquema: ni HMAC ni SHA-256 plano). Con la firma
+obligatoria, **toda** transacción válida se rechazaba por hash → nada se
+guardaba → no se detectaban anomalías. Se añadió el interruptor
+`TRANSACTIONS_REQUIRE_SIGNATURE`: en laboratorio (por defecto) la firma no se
+exige, se validan los datos y se detectan las anomalías; en producción se
+enciende y vuelve la protección por firma.
 
 **¿Cuál es la "SECRET KEY" que pide el bot?**
 `TRANSACTIONS_HMAC_SECRET`. Es una clave propia para firmar transacciones,

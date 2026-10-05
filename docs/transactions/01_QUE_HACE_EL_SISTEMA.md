@@ -59,9 +59,9 @@ y de madrugada muy pocas. Por eso el **límite es configurable por franja**:
 
 | Franja | Horario | Límite (transacciones) |
 |---|---|---|
-| Mañana | 05:00 – 12:00 | 10 |
-| Tarde-noche | 12:00 – 20:00 | 6 |
-| Noche-madrugada | 20:00 – 05:00 | 3 |
+| Mañana | 05:00:01 – 12:00:00 | 10 |
+| Tarde-noche | 12:00:01 – 20:00:00 | 6 |
+| Noche-madrugada | 20:00:01 – 05:00:00 | 3 |
 
 Es decir: de madrugada basta con 3 transacciones juntas para sospechar; en la
 mañana se toleran hasta 10. Estos números se pueden cambiar.

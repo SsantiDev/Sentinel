@@ -33,26 +33,36 @@ POST /api/v1/transactions/
 | `date` | texto ISO 8601 | con o sin zona horaria |
 | `value` | número | monto |
 | `paymentMethod` | texto | Tarjeta, Efectivo, Transferencia, PSE, Otro |
-| `hash` | texto | SHA-256 (ver abajo) |
+| `hash` | texto | huella de integridad; debe venir presente (ver abajo) |
 
-## Cómo se calcula el hash (clave para que el bot acierte)
+## Sobre el campo `hash` (dos modos)
 
-El hash es una **firma HMAC-SHA256** del texto de los campos unidos con `|` en
-este orden, usando una **clave secreta compartida**:
+El sistema tiene dos modos. Un super administrador los cambia **en vivo** desde
+el panel de configuración de detección (la variable `TRANSACTIONS_REQUIRE_SIGNATURE`
+solo fija el valor inicial):
 
-```
-hmac_sha256( SECRET, "idTxn|user|date|value|paymentMethod" )
-```
+- **Modo laboratorio / evaluador (por defecto).** La firma **NO es
+  obligatoria**. El servidor valida el **formato** de cada transacción y
+  descarta la basura (campos faltantes, tipos inválidos, fechas imposibles),
+  pero una transacción **bien formada se acepta aunque su `hash` no coincida**.
+  Así, un evaluador externo que **no comparte la clave secreta** puede enviar su
+  flujo y las anomalías se detectan igual. El campo `hash` debe venir, pero su
+  valor no se verifica.
 
-La clave `SECRET` se entrega junto con la URL (es la variable
-`TRANSACTIONS_HMAC_SECRET` del servidor). Sin ella **no se puede producir una
-firma válida**: así se evita que un tercero falsifique transacciones.
+- **Modo producción (`TRANSACTIONS_REQUIRE_SIGNATURE=True`).** Se exige una
+  **firma HMAC-SHA256** con una clave secreta compartida, para impedir que un
+  tercero falsifique transacciones. La fórmula es:
 
-El servidor recalcula la firma tomando **exactamente el texto** que viene en el
-JSON. Para evitar diferencias por decimales, **envía `value` como entero** (o
-como texto) y usa esa misma representación al calcular la firma.
+  ```
+  hmac_sha256( SECRET, "idTxn|user|date|value|paymentMethod" )
+  ```
 
-### Reproducirlo en Python (idéntico al servidor)
+  La clave `SECRET` es la variable `TRANSACTIONS_HMAC_SECRET` del servidor y se
+  entrega junto con la URL. El servidor recalcula la firma tomando
+  **exactamente el texto** que viene en el JSON; para evitar diferencias por
+  decimales, envía `value` como entero y usa esa misma representación al firmar.
+
+### Firmar en Python (solo si el modo producción está activo)
 
 ```python
 import hashlib
@@ -68,9 +78,8 @@ h = compute_hash(10001, "aa@aa.com", "2026-09-23T10:30:01.120", 50000, "Tarjeta"
 # -> úsalo como el campo "hash"
 ```
 
-> Regla práctica: el texto que pongas en `value` dentro del JSON debe ser el
-> mismo que uses para calcular el hash. Con enteros (p. ej. `50000`) no hay
-> ambigüedad.
+> En modo laboratorio puedes poner cualquier texto en `hash`; lo que decide la
+> aceptación es que **los datos sean válidos**.
 
 ## Respuesta del endpoint
 
@@ -125,7 +134,8 @@ curl -s -X POST http://localhost:8000/api/v1/transactions/ \
 # Esperado: "anomalies_detected": 1
 ```
 
-Reemplaza `<HASH_n>` por el resultado de `compute_hash(...)` para cada fila.
+En modo producción, reemplaza `<HASH_n>` por el resultado de `compute_hash(...)`
+para cada fila. En modo laboratorio (por defecto) puedes dejar cualquier texto.
 
 ## Configuración de la detección (opcional, requiere admin)
 
