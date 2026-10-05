@@ -135,6 +135,9 @@ class DetectionConfigModel(models.Model):
     morning_limit = models.IntegerField(default=10)
     afternoon_limit = models.IntegerField(default=6)
     night_limit = models.IntegerField(default=3)
+    # Exigir firma HMAC en la ingesta publica. Controlable en vivo por un
+    # super administrador desde el panel (sin reiniciar el servidor).
+    require_signature = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

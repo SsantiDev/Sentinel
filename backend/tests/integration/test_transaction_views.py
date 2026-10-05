@@ -11,6 +11,9 @@ TEST_SECRET = 'test-hmac-secret'
 @pytest.fixture(autouse=True)
 def _hmac_secret(settings):
     settings.TRANSACTIONS_HMAC_SECRET = TEST_SECRET
+    # La suite prueba la ruta segura por defecto (firma obligatoria). Los tests
+    # de modo laboratorio ponen este ajuste en False explicitamente.
+    settings.TRANSACTIONS_REQUIRE_SIGNATURE = True
 
 
 def _payload(id_txn, user, date, value, method='Tarjeta', bad_hash=False):
@@ -242,3 +245,103 @@ def test_simulate_signs_server_side_and_detects_anomaly(admin_client):
     assert res.status_code == 201
     assert res.data['accepted'] == 4
     assert res.data['anomalies_detected'] == 1
+
+
+# --- Modo laboratorio/evaluador: firma NO obligatoria ---
+
+@pytest.mark.django_db
+def test_lab_mode_accepts_valid_data_with_wrong_hash(client, settings):
+    # Sin exigir firma: datos bien formados entran aunque el hash no coincida
+    # (asi es como envia el bot evaluador, que no comparte el secreto).
+    settings.TRANSACTIONS_REQUIRE_SIGNATURE = False
+    body = {
+        'idTxn': 500, 'user': 'bot@eval.com', 'date': '2026-09-23T10:00:01',
+        'value': 1000, 'paymentMethod': 'Paypal', 'hash': 'hash-aleatorio-del-bot',
+    }
+    res = client.post('/api/v1/transactions/', body, format='json')
+    assert res.status_code == 201
+    assert res.data['accepted'] == 1
+    assert TransactionModel.objects.count() == 1
+
+
+@pytest.mark.django_db
+def test_lab_mode_still_rejects_malformed_data(client, settings):
+    # Sin exigir firma, la BASURA de datos se sigue descartando por formato.
+    settings.TRANSACTIONS_REQUIRE_SIGNATURE = False
+    garbage = [
+        {'idTxn': '', 'user': 'x@x.com', 'date': '2026-09-23T10:00:01',
+         'value': 100, 'paymentMethod': 'Tarjeta', 'hash': 'h'},
+        {'idTxn': 501, 'user': 'x@x.com', 'date': '',
+         'value': 100, 'paymentMethod': 'Tarjeta', 'hash': 'h'},
+        {'idTxn': 502, 'user': 'x@x.com', 'date': '2026-09-23T10:00:01',
+         'value': False, 'paymentMethod': 'Tarjeta', 'hash': 'h'},
+    ]
+    res = client.post('/api/v1/transactions/', garbage, format='json')
+    assert res.status_code == 422
+    assert res.data['accepted'] == 0
+    assert all(r['reason'] == 'INVALID_PAYLOAD' for r in res.data['rejected'])
+    assert TransactionModel.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_lab_mode_in_batch_duplicate_ids_and_bools_no_500(client, settings):
+    # idTxn repetidos en el mismo lote + booleanos: no debe reventar (500).
+    settings.TRANSACTIONS_REQUIRE_SIGNATURE = False
+    batch = [
+        {'idTxn': 0, 'user': 'a@a.com', 'date': '2026-09-23T10:00:01',
+         'value': 100, 'paymentMethod': 'Tarjeta', 'hash': 'h'},
+        {'idTxn': 0, 'user': 'a@a.com', 'date': '2026-09-23T10:00:02',
+         'value': 200, 'paymentMethod': 'Tarjeta', 'hash': 'h'},
+        {'idTxn': False, 'user': 'a@a.com', 'date': '2026-09-23T10:00:03',
+         'value': 300, 'paymentMethod': 'Tarjeta', 'hash': 'h'},
+        {'idTxn': 700, 'user': 'a@a.com', 'date': '2026-09-23T10:00:04',
+         'value': True, 'paymentMethod': 'Tarjeta', 'hash': 'h'},
+    ]
+    res = client.post('/api/v1/transactions/', batch, format='json')
+    assert res.status_code == 201               # no 500
+    assert res.data['accepted'] == 1            # solo el primer idTxn 0
+    reasons = {r['reason'] for r in res.data['rejected']}
+    assert 'DUPLICATE' in reasons               # el segundo idTxn 0
+    assert 'INVALID_PAYLOAD' in reasons         # los booleanos
+    assert TransactionModel.objects.count() == 1
+
+
+@pytest.mark.django_db
+def test_config_toggle_controls_signature(admin_client, client):
+    # El super admin enciende la firma desde el panel -> hash invalido se rechaza.
+    admin_client.put('/api/v1/detection-config/', {'require_signature': True}, format='json')
+    bad = {'idTxn': 800, 'user': 'z@z.com', 'date': '2026-09-23T10:00:01',
+           'value': 100, 'paymentMethod': 'Tarjeta', 'hash': 'no-vale'}
+    r1 = client.post('/api/v1/transactions/', bad, format='json')
+    assert r1.status_code == 422
+    assert r1.data['rejected'][0]['reason'] == 'INVALID_HASH'
+
+    # La apaga -> la misma transaccion (otro id) entra aunque el hash no sirva.
+    admin_client.put('/api/v1/detection-config/', {'require_signature': False}, format='json')
+    r2 = client.post('/api/v1/transactions/', {**bad, 'idTxn': 801}, format='json')
+    assert r2.status_code == 201
+    assert r2.data['accepted'] == 1
+
+
+@pytest.mark.django_db
+def test_detection_config_exposes_require_signature(admin_client):
+    res = admin_client.get('/api/v1/detection-config/')
+    assert res.status_code == 200
+    assert 'require_signature' in res.data
+
+
+@pytest.mark.django_db
+def test_lab_mode_detects_anomaly_from_unsigned_burst(client, settings):
+    # Rafaga de noche (limite 3) con hashes basura -> se detecta igual.
+    settings.TRANSACTIONS_REQUIRE_SIGNATURE = False
+    burst = [
+        {'idTxn': 600 + i, 'user': 'bot@eval.com',
+         'date': f'2026-09-23T21:00:0{i + 1}', 'value': 50000,
+         'paymentMethod': 'Tarjeta', 'hash': f'basura-{i}'}
+        for i in range(3)
+    ]
+    res = client.post('/api/v1/transactions/', burst, format='json')
+    assert res.status_code == 201
+    assert res.data['accepted'] == 3
+    assert res.data['anomalies_detected'] == 1
+    assert TransactionAnomalyModel.objects.count() == 1

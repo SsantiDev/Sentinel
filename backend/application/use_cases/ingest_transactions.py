@@ -39,6 +39,10 @@ def _parse_date(raw: str) -> datetime:
 
 def _parse_one(item: Dict) -> Transaction:
     """Convierte un payload crudo en entidad Transaction (lanza si invalido)."""
+    # Un booleano JSON (true/false) no es un id ni un monto: Python lo
+    # convertiria en silencio a 0/1, asi que se rechaza de forma explicita.
+    if isinstance(item['idTxn'], bool) or isinstance(item['value'], bool):
+        raise ValueError('bool not allowed for idTxn/value')
     id_txn = int(item['idTxn'])
     user = str(item['user']).strip()
     date = _parse_date(str(item['date']))
@@ -59,19 +63,29 @@ def ingest_transactions(
     payloads: List[Dict],
     repo: ITransactionRepository,
     secret: str,
+    require_signature: bool = True,
 ) -> IngestResult:
     """
     Procesa un lote de transacciones:
-      1. valida estructura y firma HMAC-SHA256 de cada una,
+      1. valida estructura y (si se exige) firma HMAC-SHA256 de cada una,
       2. descarta duplicadas (idTxn ya registrado),
       3. persiste las validas,
       4. corre la ventana deslizante por usuario y registra anomalias.
 
     'secret' es la clave compartida con la que el emisor firma cada transaccion;
     sin ella una firma valida no puede fabricarse.
+
+    'require_signature' controla si la firma es obligatoria. En produccion se
+    deja en True (anti-falsificacion). En modo laboratorio/evaluador se pasa
+    False: el emisor externo no comparte el secreto, asi que una transaccion
+    bien formada entra aunque su hash no coincida (la basura se sigue
+    descartando por formato en el Filtro 1).
     """
     result = IngestResult()
     valid: List[Transaction] = []
+    # idTxn ya vistos EN ESTE lote: evita que dos filas con el mismo id lleguen
+    # juntas al guardado en bloque y rompan la clave unica (error de servidor).
+    seen_ids: set = set()
 
     # Se valida cada transaccion en 3 filtros en orden: formato -> firma ->
     # duplicado. La que falla un filtro se descarta con su motivo y se sigue.
@@ -82,22 +96,27 @@ def ingest_transactions(
             result.rejected.append({'idTxn': item.get('idTxn'), 'reason': 'INVALID_PAYLOAD'})
             continue
 
-        # Filtro 2: la firma HMAC debe coincidir con la recalculada con la clave.
-        ok = is_valid_hash(
-            txn.hash,
-            secret,
-            str(item['idTxn']), txn.user, str(item['date']),
-            str(item['value']), txn.payment_method,
-        )
-        if not ok:
-            result.rejected.append({'idTxn': txn.id_txn, 'reason': 'INVALID_HASH'})
-            continue
+        # Filtro 2 (solo si se exige firma): la firma HMAC debe coincidir con la
+        # recalculada con la clave. Si no se exige (modo evaluador), se omite
+        # porque el emisor no comparte el secreto.
+        if require_signature:
+            ok = is_valid_hash(
+                txn.hash,
+                secret,
+                str(item['idTxn']), txn.user, str(item['date']),
+                str(item['value']), txn.payment_method,
+            )
+            if not ok:
+                result.rejected.append({'idTxn': txn.id_txn, 'reason': 'INVALID_HASH'})
+                continue
 
-        # Filtro 3: el idTxn no debe existir ya en la base (anti-reenvio).
-        if repo.id_txn_exists(txn.id_txn):
+        # Filtro 3: el idTxn no debe repetirse en este lote ni existir ya en la
+        # base (anti-reenvio y anti-colision dentro del mismo request).
+        if txn.id_txn in seen_ids or repo.id_txn_exists(txn.id_txn):
             result.rejected.append({'idTxn': txn.id_txn, 'reason': 'DUPLICATE'})
             continue
 
+        seen_ids.add(txn.id_txn)
         valid.append(txn)
 
     if not valid:

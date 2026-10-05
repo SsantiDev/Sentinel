@@ -35,6 +35,7 @@ export function DetectionConfigPanel() {
       const payload = Object.fromEntries(
         FIELDS.map((f) => [f.key, Math.max(1, parseInt(form[f.key], 10) || 1)])
       )
+      payload.require_signature = !!form.require_signature
       const { data } = await apiClient.put('/detection-config/', payload)
       setForm(data)
       setSaved(true)
@@ -73,6 +74,33 @@ export function DetectionConfigPanel() {
           </div>
         ))}
       </div>
+
+      <div className="flex items-start justify-between gap-4 mt-6 pt-5 border-t border-border-subtle">
+        <div className="flex-1">
+          <p className="text-[10px] font-black uppercase tracking-widest text-text-secondary mb-1">
+            {t('anomalies.config.requireSignature')}
+          </p>
+          <p className="text-text-secondary text-xs">{t('anomalies.config.requireSignatureDesc')}</p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={!!form.require_signature}
+          onClick={() => handleChange('require_signature', !form.require_signature)}
+          className={`relative shrink-0 w-12 h-7 rounded-full transition-colors ${
+            form.require_signature ? 'bg-orange-500' : 'bg-border-subtle'
+          }`}
+        >
+          <span
+            className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white transition-transform ${
+              form.require_signature ? 'translate-x-5' : ''
+            }`}
+          />
+        </button>
+      </div>
+      <p className="text-text-secondary text-[10px] mt-2">
+        {form.require_signature ? t('anomalies.config.on') : t('anomalies.config.off')}
+      </p>
 
       {error && <p className="text-red-500 text-xs mt-3">{error}</p>}
 

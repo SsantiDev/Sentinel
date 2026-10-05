@@ -48,3 +48,6 @@ class ITransactionRepository(ABC):
 
     @abstractmethod
     def update_anomaly_status(self, anomaly_id: int, status: str) -> Optional[TransactionAnomaly]: ...
+
+    @abstractmethod
+    def reset_all(self) -> Tuple[int, int]: ...

@@ -2,6 +2,7 @@ from datetime import timedelta
 from decimal import Decimal
 from typing import Dict, List, Optional, Tuple
 
+from django.conf import settings
 from django.db.models import Count, Sum
 from django.db.models.functions import ExtractHour, TruncDate
 from django.utils import timezone
@@ -26,8 +27,16 @@ class DjangoTransactionRepository(ITransactionRepository):
     # --- Configuracion de deteccion (una sola fila, pk=1) ---
 
     def get_config(self) -> DetectionConfig:
-        """Devuelve la config de deteccion; la crea con valores por defecto si no existe."""
-        m, _ = DetectionConfigModel.objects.get_or_create(pk=1)
+        """Devuelve la config de deteccion; la crea si no existe.
+
+        Al crearla por primera vez, 'require_signature' se siembra con el valor
+        del entorno (TRANSACTIONS_REQUIRE_SIGNATURE). A partir de ahi, el valor
+        vive en la base y lo controla el super administrador desde el panel.
+        """
+        m, _ = DetectionConfigModel.objects.get_or_create(
+            pk=1,
+            defaults={'require_signature': settings.TRANSACTIONS_REQUIRE_SIGNATURE},
+        )
         return self._to_config_entity(m)
 
     def save_config(self, config: DetectionConfig) -> DetectionConfig:
@@ -39,6 +48,7 @@ class DjangoTransactionRepository(ITransactionRepository):
                 'morning_limit': config.morning_limit,
                 'afternoon_limit': config.afternoon_limit,
                 'night_limit': config.night_limit,
+                'require_signature': config.require_signature,
             },
         )
         return self._to_config_entity(m)
@@ -100,6 +110,17 @@ class DjangoTransactionRepository(ITransactionRepository):
             window_end=anomaly.window_end,
         )
         return self._to_anomaly_entity(m)
+
+    def reset_all(self) -> Tuple[int, int]:
+        """Borra TODAS las transacciones y anomalias; devuelve (transacciones, anomalias).
+
+        Deja el entorno de evaluacion en blanco. Se borran tambien las anomalias
+        porque el detector tiene anti-duplicado por ventana: si quedaran, una
+        rafaga re-enviada no se volveria a marcar.
+        """
+        anomalies, _ = TransactionAnomalyModel.objects.all().delete()
+        transactions, _ = TransactionModel.objects.all().delete()
+        return transactions, anomalies
 
     # --- Metricas del dashboard ---
 
@@ -240,6 +261,7 @@ class DjangoTransactionRepository(ITransactionRepository):
             morning_limit=m.morning_limit,
             afternoon_limit=m.afternoon_limit,
             night_limit=m.night_limit,
+            require_signature=m.require_signature,
         )
 
     def _to_txn_entity(self, m: TransactionModel) -> Transaction:

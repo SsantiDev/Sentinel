@@ -49,4 +49,5 @@ class DetectionConfig:
     morning_limit: int = 10
     afternoon_limit: int = 6
     night_limit: int = 3
+    require_signature: bool = False
     id: Optional[int] = None

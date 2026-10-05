@@ -14,6 +14,20 @@ ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[])
 # evaluador) y debe poder rotarse sin afectar las sesiones de Django.
 TRANSACTIONS_HMAC_SECRET = env('TRANSACTIONS_HMAC_SECRET', default='')
 
+# Interruptor de la firma en el endpoint publico de ingesta.
+#   True  -> se exige firma HMAC valida (anti-falsificacion; para produccion).
+#   False -> no se exige firma; se validan los datos y se descarta la basura,
+#            pero una transaccion bien formada entra aunque su hash no coincida.
+# Se deja en False por defecto porque el emisor externo (bot evaluador) no
+# comparte el secreto: en modo laboratorio debe poder enviar sin firmar.
+TRANSACTIONS_REQUIRE_SIGNATURE = env.bool('TRANSACTIONS_REQUIRE_SIGNATURE', default=False)
+
+# Fecha limite (inclusive, ISO YYYY-MM-DD) del reset horario del entorno de
+# evaluacion. Hasta esa fecha, una tarea Celery borra todas las transacciones y
+# anomalias cada hora para que el bot evaluador reciba 201 al reenviar su lote.
+# Pasada la fecha, la tarea no borra nada (se auto-desactiva). Vacio = sin limite.
+TRANSACTIONS_RESET_UNTIL = env('TRANSACTIONS_RESET_UNTIL', default='2026-10-06')
+
 INSTALLED_APPS = [
     'jazzmin',
     'django.contrib.admin',
@@ -82,6 +96,10 @@ CELERY_BEAT_SCHEDULE = {
     'purge-trial-data-daily': {
         'task': 'infrastructure.tasks.ping_tasks.purge_trial_user_data',
         'schedule': 86400.0,
+    },
+    'reset-transactions-hourly': {
+        'task': 'infrastructure.tasks.transaction_tasks.reset_transactions_task',
+        'schedule': 3600.0,
     },
 }
 

@@ -90,9 +90,15 @@ class TransactionIngestView(APIView):
             )
 
         # El caso de uso valida la firma, descarta duplicados, guarda las
-        # validas y corre la ventana deslizante. Se le inyecta la clave secreta.
+        # validas y corre la ventana deslizante. Se le inyecta la clave secreta
+        # y si la firma es obligatoria (interruptor de la configuracion, que un
+        # super administrador puede cambiar en vivo desde el panel).
         repo = DjangoTransactionRepository()
-        result = ingest_transactions(payloads, repo, settings.TRANSACTIONS_HMAC_SECRET)
+        require_signature = repo.get_config().require_signature
+        result = ingest_transactions(
+            payloads, repo, settings.TRANSACTIONS_HMAC_SECRET,
+            require_signature=require_signature,
+        )
         return _ingest_response(result)
 
 
@@ -128,9 +134,13 @@ class TransactionSimulateView(APIView):
         )
 
         # Se ingesta por el mismo camino que el endpoint publico (misma validacion
-        # y misma deteccion de anomalias).
+        # y misma deteccion de anomalias). Como el servidor firmo con el secreto,
+        # aqui la firma SIEMPRE se exige y debe coincidir.
         repo = DjangoTransactionRepository()
-        result = ingest_transactions(payloads, repo, settings.TRANSACTIONS_HMAC_SECRET)
+        result = ingest_transactions(
+            payloads, repo, settings.TRANSACTIONS_HMAC_SECRET,
+            require_signature=True,
+        )
         return _ingest_response(result)
 
 
@@ -205,6 +215,7 @@ class DetectionConfigView(APIView):
             morning_limit=data.get('morning_limit', current.morning_limit),
             afternoon_limit=data.get('afternoon_limit', current.afternoon_limit),
             night_limit=data.get('night_limit', current.night_limit),
+            require_signature=data.get('require_signature', current.require_signature),
         ))
         return Response(self._to_payload(updated))
 
@@ -214,4 +225,5 @@ class DetectionConfigView(APIView):
             "morning_limit": config.morning_limit,
             "afternoon_limit": config.afternoon_limit,
             "night_limit": config.night_limit,
+            "require_signature": config.require_signature,
         }

@@ -25,7 +25,7 @@ class DetectionConfigSerializer(serializers.ModelSerializer):
         model = DetectionConfigModel
         fields = [
             'window_seconds', 'morning_limit', 'afternoon_limit',
-            'night_limit', 'updated_at',
+            'night_limit', 'require_signature', 'updated_at',
         ]
         read_only_fields = ['updated_at']
 
