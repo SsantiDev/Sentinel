@@ -1,167 +1,198 @@
 # 11 — Mapa de archivos: ¿dónde vive cada cosa?
 
-Este documento es un **índice de ubicaciones**. Responde la pregunta
-"¿esto en qué archivo está?" para el sistema de transacciones: validación,
-hash, endpoint público, detección, dashboard, "logs" y configuración.
+Índice de ubicaciones del sistema de transacciones: validación, hash, endpoint
+público, detección, logs, dashboard y configuración.
 
-> **Nota sobre las rutas:** se citan por **archivo + nombre de función**, no por
-> número de línea. El código se está comentando en paralelo y las líneas se
-> mueven; el archivo y el nombre de la función se mantienen estables.
+> **Rutas:** se citan por **archivo + función + línea** (`archivo:línea`). Líneas
+> al día de la sesión 2026-10-08. Si algo no cuadra, el nombre de la función es
+> el ancla estable. Para preguntas de defensa con respuesta, ver
+> `DEFENSA_TECNICA.md`.
+
+Ruta base: `backend/`.
 
 ---
 
 ## Resumen de una mirada
 
-| Qué quiero ver | Archivo | Pieza concreta |
+| Qué quiero ver | Archivo : línea | Pieza |
 |---|---|---|
-| Cómo se valida una transacción | `backend/application/use_cases/ingest_transactions.py` | `_parse_one`, `ingest_transactions` |
-| Cómo se arma y verifica el hash | `backend/application/use_cases/transaction_hash.py` | `compute_transaction_hash`, `is_valid_hash` |
-| Validación de formato del simulador y de la config | `backend/interfaces/http/serializers/transaction_serializer.py` | `TransactionSimulateSerializer`, `DetectionConfigSerializer` |
-| El endpoint público que recibe transacciones | `backend/interfaces/http/views/transaction_views.py` | `TransactionIngestView` |
-| El simulador (genera y firma en el servidor) | `backend/interfaces/http/views/transaction_views.py` | `TransactionSimulateView` |
-| Cómo se detecta una anomalía | `backend/application/use_cases/detect_transaction_anomalies.py` | `_detect_for_user`, `detect_transaction_anomalies` |
-| Las franjas horarias y sus límites | `backend/application/use_cases/time_band.py` | `get_time_band`, `threshold_for_band` |
-| Dónde se guardan transacciones y anomalías ("los logs") | `backend/infrastructure/models.py` | `TransactionAnomalyModel` (y el modelo de transacción) |
-| Las rutas / URLs de la API | `backend/interfaces/http/urls.py` | `transactions/`, `transactions/simulate/`, `transaction-anomalies/`, `detection-config/` |
-| La clave secreta, el límite de peticiones y el tope de lote | `backend/config/settings/base.py` | `TRANSACTIONS_HMAC_SECRET`, `DEFAULT_THROTTLE_RATES`, `MAX_TRANSACTIONS_PER_REQUEST` |
-| El tablero donde se ven las anomalías | `frontend/src/presentation/pages/AnomalyDashboardPage.jsx` | usa el hook `useAnomalyDashboard` |
-| La pantalla del simulador | `frontend/src/presentation/pages/TransactionSimulatorPage.jsx` | — |
+| Validar una transacción (3 filtros) | `application/use_cases/ingest_transactions.py:88-132`, `:135-248` | `_parse_one`, `ingest_transactions` |
+| Límites anti-500 (tamaños de columna) | `application/use_cases/ingest_transactions.py:57-75` | `_ensure_db_bounds` |
+| Armar y verificar el hash | `application/use_cases/transaction_hash.py:5-29`, `:32-43` | `compute_transaction_hash`, `is_valid_hash` |
+| Endpoint público de ingesta | `interfaces/http/views/transaction_views.py:72-141` | `TransactionIngestView` |
+| Simulador (firma en el servidor) | `interfaces/http/views/transaction_views.py:144-183` | `TransactionSimulateView` |
+| Detectar anomalías (ventanas no solapadas) | `application/use_cases/detect_transaction_anomalies.py:31-96`, `:99-126` | `_detect_for_user`, `detect_transaction_anomalies` |
+| Franjas horarias y límites | `application/use_cases/time_band.py:9-42` | `get_time_band`, `threshold_for_band` |
+| Dónde se guardan txns y anomalías | `infrastructure/models.py:150-211` | `TransactionModel`, `TransactionAnomalyModel` |
+| Logs a archivo (ingesta y rechazos) | `interfaces/http/views/transaction_views.py:121-141` | log `sentinel.ingest` |
+| Pantalla de Registros (solo admin) | `interfaces/http/views/log_views.py` | `LogTailView` → `/logs` |
+| Rutas / URLs | `interfaces/http/urls.py:24,33,34,35` | ingesta, simulador, anomalías, config |
+| Clave, throttle y tope de lote | `config/settings/base.py:18,126,130` | secret, throttle, max lote |
+| Modo seguro para exponer (DEBUG off) | `config/settings/tunnel.py` | settings del túnel |
+| Tablero de anomalías | `frontend/src/presentation/pages/AnomalyDashboardPage.jsx` | usa `useAnomalyDashboard` |
 
 ---
 
 ## 1. Validación de la transacción
 
-**Archivo:** `backend/application/use_cases/ingest_transactions.py`
+**Archivo:** `application/use_cases/ingest_transactions.py`
 
-La validación ocurre en **tres filtros en orden**, dentro de `ingest_transactions`:
+Tres **filtros en orden**, dentro de `ingest_transactions` (`:135-248`):
 
-1. **Formato** — `_parse_one` convierte el dato crudo en una transacción.
-   Si falta un campo, un número no es número o la fecha es inválida, se
-   descarta con motivo `INVALID_PAYLOAD`. Aquí también se rechaza usuario o
-   método de pago vacíos.
-2. **Firma** — `is_valid_hash` (del archivo del hash). Si la firma no coincide,
-   se descarta con motivo `INVALID_HASH`.
-3. **Duplicado** — `repo.id_txn_exists`. Si el `idTxn` ya existe, se descarta
-   con motivo `DUPLICATE`.
+1. **Formato** — `_parse_one` (`:88-132`) convierte el dato crudo en transacción.
+   Rechaza campos faltantes, tipos inválidos (incluidos booleanos disfrazados de
+   número, `:101-104`), números/fechas no válidos y usuario/método vacíos. Motivo
+   `INVALID_PAYLOAD`.
+2. **Firma** — `is_valid_hash` (`:179-192`). Si no coincide, motivo `INVALID_HASH`.
+   Solo si la firma es obligatoria (modo laboratorio la omite).
+3. **Duplicado** — por `idTxn`, en el lote (`:196-201`) y en la base (`:202-207`).
+   Motivo `DUPLICATE`.
 
-> Importante: el endpoint público **no** usa `TransactionInputSerializer`. La
-> validación de estructura la hace `_parse_one` a mano. El serializer de
-> entrada existe pero no está conectado a ese camino.
+Además, antes de guardar se **acotan los tamaños** a lo que cabe en cada columna
+(`_ensure_db_bounds`, `:57-75`), porque el guardado en bloque se salta la
+validación de Django. Así un monto gigante o un texto larguísimo se rechaza
+limpio (422) en vez de reventar en la base (500).
 
-El límite de tamaño del cuerpo, el tipo del cuerpo y el código de respuesta
-(400 / 413 / 201 / 422) se deciden un nivel arriba, en la vista
-`TransactionIngestView` y en el ayudante `_ingest_response`
-(`backend/interfaces/http/views/transaction_views.py`).
+> El endpoint público **no** usa `TransactionInputSerializer`; la estructura la
+> valida `_parse_one` a mano. El serializer de entrada existe pero no se conecta
+> a este camino.
+
+El tope de lote, el tipo de cuerpo y el código de respuesta (400 / 413 / 201 /
+422) se deciden en la vista `TransactionIngestView` y en `_ingest_response`
+(`interfaces/http/views/transaction_views.py:47-69`, `:88-107`).
 
 ---
 
 ## 2. El hash (firma HMAC-SHA256)
 
-**Archivo:** `backend/application/use_cases/transaction_hash.py`
+**Archivo:** `application/use_cases/transaction_hash.py`
 
-- `compute_transaction_hash` arma el mensaje uniendo los campos en orden fijo
-  (`idTxn | user | date | value | paymentMethod`) separados por `|` y lo firma
-  con **HMAC-SHA256** usando la clave secreta.
-- `is_valid_hash` recalcula la firma y la compara contra la recibida en
-  **tiempo constante** (`hmac.compare_digest`).
+- `compute_transaction_hash` (`:5-29`) arma el mensaje uniendo los campos en
+  orden fijo (`idTxn | user | date | value | paymentMethod`, línea `:24`) y lo
+  firma con **HMAC-SHA256** (`:25-29`) usando la clave secreta.
+- `is_valid_hash` (`:32-43`) recalcula y compara en **tiempo constante**
+  (`hmac.compare_digest`, `:43`).
 
-La clave secreta **no** está en este archivo: se lee de la configuración
-(`TRANSACTIONS_HMAC_SECRET` en `base.py`, que a su vez viene del `.env`).
+La clave **no** está en este archivo: se lee de la configuración
+(`TRANSACTIONS_HMAC_SECRET`, `config/settings/base.py:18`, que viene del `.env`).
+Que la firma sea obligatoria o no es configurable en vivo
+(`TRANSACTIONS_REQUIRE_SIGNATURE`, `base.py:26`; se controla por usuario admin).
+
+> **Estado actual:** la firma está **DESACTIVADA** para el bot/evaluador
+> (`require_signature=False`), porque el bot no comparte la clave. En ese modo el
+> hash **se recibe pero no se valida**; las transacciones entran por formato +
+> anti-duplicado. El Filtro 2 solo corre si la firma está activa
+> (`ingest_transactions.py:176-179`). El simulador sí firma (clave en el servidor).
 
 ---
 
 ## 3. El endpoint público y los demás
 
-**Archivo:** `backend/interfaces/http/views/transaction_views.py`
-**Rutas:** `backend/interfaces/http/urls.py`
+**Archivos:** `interfaces/http/views/transaction_views.py` · rutas en
+`interfaces/http/urls.py`
 
-| Ruta | Clase | Quién puede entrar |
+| Ruta | Clase | Quién entra |
 |---|---|---|
-| `POST /api/v1/transactions/` | `TransactionIngestView` | Cualquiera (público) |
-| `POST /api/v1/transactions/simulate/` | `TransactionSimulateView` | Usuario autenticado |
-| `GET/PATCH /api/v1/transaction-anomalies/` | `TransactionAnomalyViewSet` | Administrador |
-| `GET/PUT /api/v1/detection-config/` | `DetectionConfigView` | Super administrador |
+| `POST /api/v1/transactions/` | `TransactionIngestView` (`:72-141`) | Cualquiera (público) |
+| `POST /api/v1/transactions/simulate/` | `TransactionSimulateView` (`:144-183`) | Autenticado |
+| `GET/PATCH /api/v1/transaction-anomalies/…` | `TransactionAnomalyViewSet` (`:186-233`) | Administrador |
+| `GET/PUT /api/v1/detection-config/` | `DetectionConfigView` (`:236-268`) | Super administrador |
 
-El endpoint público es abierto a propósito (para que un bot evaluador mande un
-flujo de transacciones). La protección no es el login, sino: la **firma**, el
-**límite de peticiones por IP** y el **tope de tamaño de lote**.
+El público es abierto a propósito (para un bot evaluador). La protección no es el
+login, sino: **firma** (`:85-86` throttle y `:114-118` firma), **límite de
+peticiones por IP** (`:85-86`) y **tope de lote** (`:102-107`). Al exponerlo por
+túnel se usa el modo seguro `config/settings/tunnel.py` (DEBUG apagado).
 
 ---
 
 ## 4. Detección de anomalías
 
-**Archivos:**
-`backend/application/use_cases/detect_transaction_anomalies.py` y
-`backend/application/use_cases/time_band.py`
+**Archivos:** `application/use_cases/detect_transaction_anomalies.py` y
+`application/use_cases/time_band.py`
 
-- `detect_transaction_anomalies` agrupa por usuario y ordena por fecha.
-- `_detect_for_user` corre una **ventana deslizante** (técnica de dos punteros)
-  y marca ráfaga cuando, dentro de la ventana de tiempo, la cantidad de
-  transacciones de ese usuario alcanza el límite de su franja horaria.
-- `_severity_level` clasifica la gravedad en `high` / `medium` / `low`.
+- `detect_transaction_anomalies` (`:99-126`) agrupa por usuario y ordena por fecha.
+- `_detect_for_user` (`:31-96`) usa **ventanas NO solapadas**: desde la primera
+  transacción sin consumir abre una ventana de `window` segundos; si las que caen
+  dentro alcanzan el límite de la franja, el grupo es **una** anomalía y continúa
+  después de la última (sin reportar dos veces). Una ráfaga larga se reparte en
+  varias ventanas (ya **no** se colapsa en una sola).
+- `_severity_level` (`:11-28`) da el nivel por `count/threshold`: `>=2` alto,
+  `>=1.5` medio, resto bajo.
 
-Esta detección se dispara automáticamente desde `ingest_transactions` después
-de guardar las transacciones válidas.
+Se dispara desde `ingest_transactions` (`:217-243`) tras guardar, corriendo
+contra el **historial** del usuario (no solo el lote), con anti-doble-reporte de
+ráfagas (`exists_overlapping_anomaly`, `transaction_repository.py:87-98`).
 
 ---
 
-## 5. "Los logs": dónde queda el registro
+## 5. Logs: dónde queda el registro
 
-En este sistema **no hay un archivo de log tradicional** para el flujo de
-transacciones (no se escribe a disco ni a un `logger`). El registro de lo que
-pasó queda en dos lugares:
+Hay registro en **tres lugares** (desde la sesión del visor de logs):
 
-1. **La base de datos** — `backend/infrastructure/models.py`:
-   - Las transacciones guardadas.
-   - Las anomalías detectadas (`TransactionAnomalyModel`): usuario, cuántas
-     transacciones, en qué ventana, qué franja, nivel de gravedad, valor total,
-     inicio y fin de la ventana, estado y cuándo se detectó.
-2. **La respuesta de cada ingesta** — lo que devuelve `POST /transactions/`:
-   cuántas se aceptaron, cuáles se rechazaron y **el motivo** de cada rechazo
-   (`INVALID_PAYLOAD`, `INVALID_HASH`, `DUPLICATE`).
+1. **Archivo rotativo** `backend/logs/sentinel.log` — se escribe con el logger
+   `sentinel.ingest` en la vista: por cada petición, IP real + aceptadas /
+   rechazadas / anomalías (`transaction_views.py:121-128`); por cada rechazo, su
+   motivo y detalle (`:130-141`). Configuración del logger:
+   `config/settings/logging_config.py` (enganchado en `base.py:138`).
+   Se consulta desde la pantalla **Registros** (`/logs`, solo admin) vía
+   `interfaces/http/views/log_views.py` (`LogTailView`).
+2. **La base de datos** — `infrastructure/models.py`: las transacciones y las
+   anomalías (`TransactionAnomalyModel`, `:179-211`): usuario, cuántas, ventana,
+   franja, nivel, valor total, inicio/fin, estado y `detected_at`.
+3. **La respuesta de cada ingesta** — aceptadas, rechazadas y el motivo de cada
+   rechazo (`INVALID_PAYLOAD` / `INVALID_HASH` / `DUPLICATE`).
 
-El acceso a la base pasa por el repositorio
-`backend/infrastructure/repositories/transaction_repository.py`
+> Regla: los logs van a **archivo**, nunca a una tabla de la base.
+
+El acceso a datos pasa por `infrastructure/repositories/transaction_repository.py`
 (`DjangoTransactionRepository`).
 
 ---
 
-## 6. El dashboard (dónde se ve todo)
+## 6. El dashboard
 
-**Archivos (frontend):**
-- `frontend/src/presentation/pages/AnomalyDashboardPage.jsx` — el tablero de
-  anomalías. Muestra estadísticas, tendencias y la lista de anomalías, y
-  permite ver la línea de tiempo de cada una.
-- `frontend/src/application/hooks/useAnomalyDashboard.js` — el hook que pide los
-  datos a la API (`stats`, `trends`, lista de anomalías, timeline).
-- `frontend/src/presentation/pages/TransactionSimulatorPage.jsx` — la pantalla
-  del simulador para generar transacciones de prueba.
+**Frontend:**
+- `frontend/src/presentation/pages/AnomalyDashboardPage.jsx` — el tablero
+  (resumen, tendencias, mapa de calor por hora, lista y detalle de anomalías).
+- `frontend/src/application/hooks/useAnomalyDashboard.js` — pide `stats`, `trends`
+  y la lista de anomalías.
+- `frontend/src/presentation/pages/TransactionSimulatorPage.jsx` — el simulador.
 
-Los datos que pinta el dashboard salen de los endpoints del
-`TransactionAnomalyViewSet`: `.../transaction-anomalies/stats/`,
-`.../trends/` y `.../{id}/timeline/`.
+Los datos salen de `TransactionAnomalyViewSet`: `.../stats/`
+(`transaction_views.py:196-199`), `.../trends/` (`:202-206`) y
+`.../{id}/timeline/` (`:209-233`). Los `stats` se derivan de conteos crudos en
+`infrastructure/repositories/transaction_metrics.py:26-142` (no inventan nada).
 
 ---
 
 ## 7. Configuración y seguridad
 
-**Archivo:** `backend/config/settings/base.py`
+**Archivo:** `config/settings/base.py` (y perfiles `local.py`, `production.py`,
+`tunnel.py`)
 
-- `TRANSACTIONS_HMAC_SECRET` — la clave con la que se firma y se verifica. Viene
-  del `.env`. Su valor por defecto es vacío (ver advertencia en el documento de
-  preguntas de examen).
-- `DEFAULT_THROTTLE_RATES['transactions_ingest']` = `3000/min` — máximo de
-  peticiones por IP al endpoint público (freno a inundación / DoS).
-- `MAX_TRANSACTIONS_PER_REQUEST` = `1000` — máximo de transacciones por cuerpo
-  (si se supera, responde 413).
+- `TRANSACTIONS_HMAC_SECRET` (`:18`) — clave de firma, del `.env`.
+- `TRANSACTIONS_REQUIRE_SIGNATURE` (`:26`) — valor inicial del interruptor de
+  firma (luego vive en la base, editable por admin; se siembra en
+  `transaction_repository.py:37-40`).
+- `DEFAULT_THROTTLE_RATES['transactions_ingest']` = `3000/min` (`:126`).
+- `MAX_TRANSACTIONS_PER_REQUEST` = `1000` (`:130`) — supera → 413.
+- `TRANSACTIONS_RESET_UNTIL` (`:32`) — fecha hasta la que la tarea de reseteo
+  horario borra datos; pasada esa fecha se auto-apaga
+  (`infrastructure/tasks/transaction_tasks.py:23-40`).
+- `EXCEPTION_HANDLER` (`:132`) → `config/exception_handler.py:8-30` registra los
+  5xx sin filtrar la traza al cliente.
+- Modo túnel: `config/settings/tunnel.py` (`DEBUG=False`, hosts `*`) para exponer
+  sin filtrar internals.
 
 ---
 
 ## 8. Pruebas (tests)
 
-- `backend/tests/unit/test_transaction_hash.py` — prueba la firma.
-- `backend/tests/integration/test_transaction_views.py` — prueba el endpoint de
-  ingesta de punta a punta.
+- `backend/tests/unit/test_transaction_hash.py` — la firma.
+- `backend/tests/unit/test_detect_transaction_anomalies.py` — la detección por
+  ventanas (incluye el reparto de una ráfaga larga en varias anomalías).
+- `backend/tests/unit/test_calculate_transaction_stats.py` — los stats del tablero.
+- `backend/tests/integration/test_transaction_views.py` — el endpoint de punta a
+  punta (incluye rechazo limpio de entradas extremas, sin 500).
 
-> Recordatorio: los tests corren en Docker; el entorno local puede estar
-> incompleto.
+> Los tests corren en Docker; el entorno local puede estar incompleto.

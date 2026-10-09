@@ -1,0 +1,7 @@
+# Override SOLO para exponer la app por el tunel (no se aplica en el
+# "docker compose up" normal; hay que pasarlo con -f explicitamente).
+# Pone el backend en modo seguro: DEBUG apagado para no filtrar internals.
+services:
+  web:
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.tunnel
