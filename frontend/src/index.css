@@ -21,7 +21,9 @@
   
   --skeleton-bg: #e2e8f0;
   --skeleton-highlight: #cbd5e1;
-  
+
+  --scrollbar-thumb: #cbd5e1;
+
   --accent: #2ecc71;
 }
 
@@ -36,6 +38,8 @@
 
   --skeleton-bg: #1c1c24;
   --skeleton-highlight: #2d2d3a;
+
+  --scrollbar-thumb: #2d2d3a;
 }
 
 body {
@@ -47,28 +51,38 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Custom Scrollbar Global */
+/* Todo boton se siente clickeable (Tailwind v4 no lo hace por defecto). */
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+/* Custom Scrollbar Global. Track transparente para que se vea bien sobre
+   cualquier fondo (incluido el blanco de los modales en modo claro); el thumb
+   usa un color propio por tema para que siempre contraste. */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-main);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-subtle);
+  background: var(--scrollbar-thumb);
   border-radius: 10px;
-  border: 2px solid var(--bg-main);
+  background-clip: padding-box;
+  border: 2px solid transparent;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3a3a5e;
+  background: var(--text-secondary);
+  background-clip: padding-box;
+  border: 2px solid transparent;
 }
 
 /* For Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--border-subtle) var(--bg-main);
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }

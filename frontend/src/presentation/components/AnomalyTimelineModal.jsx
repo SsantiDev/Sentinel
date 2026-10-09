@@ -2,6 +2,10 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Zap } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+const currency = new Intl.NumberFormat('es-CO', {
+  style: 'currency', currency: 'COP', maximumFractionDigits: 0,
+})
+
 export function AnomalyTimelineModal({ data, loading, onClose }) {
   const { t } = useTranslation()
   const isOpen = data !== null || loading
@@ -42,7 +46,7 @@ export function AnomalyTimelineModal({ data, loading, onClose }) {
             <div className="bg-bg-card border border-border-subtle rounded-[2.5rem] shadow-[0_40px_80px_rgba(0,0,0,0.3)] relative p-10">
               <button
                 onClick={onClose}
-                className="absolute top-5 right-6 z-20 text-text-secondary hover:text-text-primary transition-all p-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-full"
+                className="absolute top-5 right-6 z-20 text-text-secondary hover:text-text-primary transition-all duration-200 hover:scale-110 hover:rotate-90 active:scale-90 p-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-full"
               >
                 <X size={18} />
               </button>
@@ -59,7 +63,7 @@ export function AnomalyTimelineModal({ data, loading, onClose }) {
               ) : data && (
                 <>
                   <p className="text-text-secondary text-sm mb-8">
-                    {t('anomalies.timeline.windowSeconds', { seconds: windowSeconds })} — {data.anomaly.transaction_count} {t('anomalies.table.transactionCount').toLowerCase()}
+                    {t('anomalies.timeline.windowSeconds', { seconds: windowSeconds })} · {data.anomaly.transaction_count} {t('anomalies.table.transactionCount').toLowerCase()}
                   </p>
 
                   <div className="relative h-16 mb-4">
@@ -72,7 +76,7 @@ export function AnomalyTimelineModal({ data, loading, onClose }) {
                       >
                         <div className="w-4 h-4 rounded-full bg-red-500 border-2 border-bg-card shadow-lg shadow-red-500/40" />
                         <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block whitespace-nowrap bg-[#1a1a2e] text-white text-[10px] px-2 py-1 rounded-lg">
-                          {p.occurredAt.toLocaleTimeString([], { hour12: false })} — {p.payment_method}
+                          {p.occurredAt.toLocaleTimeString([], { hour12: false })} · {p.payment_method}
                         </div>
                       </div>
                     ))}
@@ -82,6 +86,25 @@ export function AnomalyTimelineModal({ data, loading, onClose }) {
                     <span>{windowStart?.toLocaleTimeString([], { hour12: false })}</span>
                     <span className="text-red-500">{t('anomalies.timeline.inWindow')}</span>
                     <span>{windowEnd?.toLocaleTimeString([], { hour12: false })}</span>
+                  </div>
+
+                  <div className="mt-6 max-h-56 overflow-y-auto space-y-2 pr-1">
+                    {points.map((p, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between gap-3 border border-border-subtle rounded-xl px-3 py-2"
+                      >
+                        <span className="text-xs font-bold text-text-primary tabular-nums shrink-0">
+                          {p.occurredAt.toLocaleTimeString([], { hour12: false })}
+                        </span>
+                        <span className="text-[11px] text-text-secondary truncate flex-1 text-center">
+                          {p.payment_method}
+                        </span>
+                        <span className="text-xs font-black text-text-primary tabular-nums shrink-0">
+                          {currency.format(p.value || 0)}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </>
               )}
