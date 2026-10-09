@@ -32,74 +32,66 @@ def _detect_for_user(
     transactions: List[Transaction],
     config: DetectionConfig,
 ) -> List[TransactionAnomaly]:
-    """Detecta rafagas en las transacciones de UN usuario con ventana deslizante.
+    """Detecta rafagas de UN usuario agrupando en ventanas NO solapadas.
 
     Parametros:
         transactions: transacciones del usuario YA ordenadas por fecha.
         config:        limites por franja y tamano de ventana (en segundos).
 
-    Tecnica (dos punteros 'left' y 'right'):
-        'right' avanza una por una; 'left' marca el inicio de la ventana. Mientras
-        la distancia en segundos entre la primera (left) y la actual (right) supere
-        el tamano de ventana, se encoge moviendo 'left' a la derecha. Asi, en todo
-        momento, [left..right] son las transacciones dentro de la ventana que
-        termina en la transaccion actual.
+    Tecnica (ventanas no solapadas):
+        Desde la primera transaccion sin consumir se abre una ventana de 'window'
+        segundos y se cuentan todas las que caen dentro (desde esa primera hasta
+        la ultima que este a <= 'window' segundos de ella). Si esa cantidad
+        alcanza el limite de la franja horaria, el grupo es UNA anomalia y se
+        continua DESPUES de su ultima transaccion (sin reportar dos veces las
+        mismas). Si no alcanza el limite, se avanza una transaccion y se reintenta.
 
-        Cuando esa cantidad alcanza el limite de su franja horaria, estamos ante
-        una rafaga. En vez de trocearla, se EXTIENDE el episodio mientras las
-        transacciones sigan llegando dentro de 'window' segundos de la anterior
-        (rafaga continua) y se reporta como UNA sola anomalia que cubre todo el
-        episodio. Luego se continua despues del episodio. Resultado: una ráfaga
-        sostenida = una anomalia, sin importar cuantas transacciones tenga.
+        Asi una rafaga larga se reparte en varias anomalias (una por ventana) en
+        vez de colapsar en una sola, y el nivel de cada anomalia sale de cuantas
+        transacciones cayeron en su ventana frente al limite (mas concentracion
+        en la ventana = mas grave).
 
     Devuelve la lista de anomalias encontradas para ese usuario.
     """
     anomalies: List[TransactionAnomaly] = []
     window = config.window_seconds
     n = len(transactions)
-    left = 0
-    right = 0
+    start_idx = 0
 
-    while right < n:
-        end = transactions[right].date
-        # Encoge la ventana por la izquierda mientras exceda el rango permitido.
-        while (end - transactions[left].date).total_seconds() > window:
-            left += 1
+    while start_idx < n:
+        start = transactions[start_idx].date
+        # Ultima transaccion dentro de 'window' segundos desde la primera.
+        end_idx = start_idx
+        while end_idx + 1 < n and (
+            transactions[end_idx + 1].date - start
+        ).total_seconds() <= window:
+            end_idx += 1
 
-        # Cantidad de transacciones dentro de la ventana [left..right].
-        count = right - left + 1
-        # El limite depende de la franja horaria (manana/tarde/noche) del momento.
-        band = get_time_band(end)
+        count = end_idx - start_idx + 1
+        # El limite depende de la franja horaria (manana/tarde/noche) del inicio
+        # de la ventana.
+        band = get_time_band(start)
         threshold = threshold_for_band(band, config)
 
         if count >= threshold:
-            # Rafaga detectada. Se extiende el episodio incluyendo las siguientes
-            # transacciones que lleguen a <= 'window' segundos de la anterior.
-            last = right
-            while last + 1 < n and (
-                transactions[last + 1].date - transactions[last].date
-            ).total_seconds() <= window:
-                last += 1
-
-            episode = transactions[left:last + 1]
-            ep_count = len(episode)
-            total_value = sum((t.value for t in episode), Decimal('0'))
+            group = transactions[start_idx:end_idx + 1]
+            total_value = sum((t.value for t in group), Decimal('0'))
             anomalies.append(TransactionAnomaly(
-                user=transactions[right].user,
-                transaction_count=ep_count,
+                user=group[0].user,
+                transaction_count=count,
                 window_seconds=window,
                 threshold=threshold,
                 time_band=band,
-                level=_severity_level(ep_count, threshold),
+                level=_severity_level(count, threshold),
                 total_value=total_value,
-                window_start=episode[0].date,
-                window_end=episode[-1].date,
+                window_start=group[0].date,
+                window_end=group[-1].date,
+                transaction_ids=[t.id_txn for t in group],
             ))
-            # Continua despues del episodio completo (no se reporta dos veces).
-            right = last + 1
-            left = right
+            # Ventanas no solapadas: continua despues de este grupo.
+            start_idx = end_idx + 1
         else:
-            right += 1
+            start_idx += 1
 
     return anomalies
 

@@ -1,3 +1,5 @@
+import logging
+from collections import Counter
 from datetime import datetime
 
 from django.conf import settings
@@ -19,6 +21,21 @@ from application.use_cases.simulate_transactions import build_signed_transaction
 from application.use_cases.calculate_transaction_stats import calculate_transaction_stats
 from application.use_cases.calculate_transaction_trends import calculate_transaction_trends
 from domain.entities.transaction import DetectionConfig
+
+
+logger = logging.getLogger('sentinel.ingest')
+
+# Cuantos rechazos se detallan en el log por peticion (un lote de fuzzing puede
+# traer cientos; se registra el resumen y hasta este tope con su detalle).
+REJECTION_LOG_LIMIT = 50
+
+
+def _client_ip(request):
+    """IP de origen de la peticion (respeta el proxy inverso si lo hay)."""
+    forwarded = request.META.get('HTTP_X_FORWARDED_FOR')
+    if forwarded:
+        return forwarded.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR', '?')
 
 
 class IsSuperUser(permissions.BasePermission):
@@ -99,7 +116,29 @@ class TransactionIngestView(APIView):
             payloads, repo, settings.TRANSACTIONS_HMAC_SECRET,
             require_signature=require_signature,
         )
+        # Queda registrado que entro cada envio del emisor externo (bot) y que
+        # paso con el: cuantas se aceptaron, cuantas se rechazaron y por que.
+        logger.info(
+            'ingesta ip=%s recibidas=%d aceptadas=%d rechazadas=%d anomalias=%d',
+            _client_ip(request), len(payloads), len(result.accepted),
+            len(result.rejected), result.anomalies_detected,
+        )
+        if result.rejected:
+            self._log_rejections(result.rejected, _client_ip(request))
         return _ingest_response(result)
+
+    def _log_rejections(self, rejected, ip):
+        """Registra el resumen de rechazos y el detalle preciso de cada uno."""
+        reasons = dict(Counter(r['reason'] for r in rejected))
+        logger.warning('ingesta rechazos ip=%s total=%d motivos=%s', ip, len(rejected), reasons)
+        for r in rejected[:REJECTION_LOG_LIMIT]:
+            logger.warning(
+                'rechazo idTxn=%s reason=%s detalle=%s',
+                r.get('idTxn'), r['reason'], r.get('detail', '-'),
+            )
+        extra = len(rejected) - REJECTION_LOG_LIMIT
+        if extra > 0:
+            logger.warning('...y %d rechazos mas no detallados', extra)
 
 
 class TransactionSimulateView(APIView):

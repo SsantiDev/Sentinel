@@ -8,10 +8,12 @@ def _counts(**overrides):
         'total_transactions': 200, 'total_anomalies': 10,
         'distinct_users': 20, 'affected_users_count': 4,
         'suspicious_total_value': 1500000.0,
+        'anomalies_transaction_total': 37,
         'anomalies_open': 6, 'anomalies_reviewed': 3, 'anomalies_discarded': 1,
         'anomalies_by_level': {'low': 5, 'medium': 3, 'high': 2},
         'payment_method_distribution': [{'method': 'Tarjeta', 'count': 120}],
         'top_recurrent_users': [{'user': 'b@b.com', 'anomaly_count': 4}],
+        'top_recurrent_cases': [{'time_band': 'night', 'level': 'high', 'count': 3}],
     }
     base.update(overrides)
     return base
@@ -35,3 +37,5 @@ def test_passthrough_fields_present():
     assert stats['anomalies_by_level']['high'] == 2
     assert stats['payment_method_distribution'][0]['method'] == 'Tarjeta'
     assert stats['anomalies_new'] == 6
+    assert stats['anomalies_transaction_total'] == 37
+    assert stats['top_recurrent_cases'][0]['level'] == 'high'

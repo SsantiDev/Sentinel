@@ -69,6 +69,25 @@ def test_ingest_night_burst_creates_anomaly(client):
 
 
 @pytest.mark.django_db
+def test_ingest_rejects_oversized_inputs_without_500(client):
+    # Entradas que caben en Python pero NO en la columna de la base: deben
+    # rechazarse limpio (INVALID_PAYLOAD / 422), nunca provocar un 500.
+    base = {'date': '2026-09-23T10:00:01', 'hash': 'x'}
+    payloads = [
+        {'idTxn': 1, 'user': 'a@a.com', 'value': '1' * 20, 'paymentMethod': 'Tarjeta', **base},   # monto gigante
+        {'idTxn': 2, 'user': 'a@a.com', 'value': 100, 'paymentMethod': 'M' * 50, **base},          # metodo largo
+        {'idTxn': 10 ** 25, 'user': 'a@a.com', 'value': 100, 'paymentMethod': 'Tarjeta', **base},  # idTxn fuera de bigint
+        {'idTxn': 4, 'user': 'a@a.com', 'value': '1.234', 'paymentMethod': 'Tarjeta', **base},     # mas de 2 decimales
+    ]
+    res = client.post('/api/v1/transactions/', payloads, format='json')
+    assert res.status_code == 422
+    assert res.data['accepted'] == 0
+    assert len(res.data['rejected']) == 4
+    assert all(r['reason'] == 'INVALID_PAYLOAD' for r in res.data['rejected'])
+    assert TransactionModel.objects.count() == 0
+
+
+@pytest.mark.django_db
 def test_streaming_single_posts_detect_burst(client):
     # El generador manda las TXNS de a UNA (como en la sustentacion).
     # La rafaga debe detectarse contra el historial, no solo dentro del request.

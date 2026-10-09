@@ -36,6 +36,7 @@ def calculate_transaction_stats(counts: Dict) -> Dict:
         'affected_users_count': counts['affected_users_count'],
         'avg_transactions_per_user': avg_transactions_per_user,
         'suspicious_total_value': counts['suspicious_total_value'],
+        'anomalies_transaction_total': counts['anomalies_transaction_total'],
         'anomalies_new': counts['anomalies_open'],
         'anomalies_open': counts['anomalies_open'],
         'anomalies_reviewed': counts['anomalies_reviewed'],
@@ -43,4 +44,5 @@ def calculate_transaction_stats(counts: Dict) -> Dict:
         'anomalies_by_level': counts['anomalies_by_level'],
         'payment_method_distribution': counts['payment_method_distribution'],
         'top_recurrent_users': counts['top_recurrent_users'],
+        'top_recurrent_cases': counts['top_recurrent_cases'],
     }

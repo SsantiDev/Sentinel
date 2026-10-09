@@ -18,9 +18,11 @@ class IngestResult:
 
     Campos:
         accepted:           entidades guardadas correctamente.
-        rejected:           descartadas, cada una con {idTxn, reason}. Motivos:
-                            INVALID_PAYLOAD (formato), INVALID_HASH (firma),
-                            DUPLICATE (idTxn repetido).
+        rejected:           descartadas, cada una con {idTxn, reason, detail}.
+                            reason (codigo estable): INVALID_PAYLOAD (formato),
+                            INVALID_HASH (firma), DUPLICATE (idTxn repetido).
+                            detail: texto preciso de que fallo (p. ej. "value no
+                            es un numero: 'abc'"), para el log y la respuesta.
         anomalies_detected: cuantas anomalias genero este lote.
     """
     accepted: List[Transaction] = field(default_factory=list)
@@ -37,25 +39,96 @@ def _parse_date(raw: str) -> datetime:
     return parsed
 
 
+_REQUIRED_FIELDS = ('idTxn', 'user', 'date', 'value', 'paymentMethod', 'hash')
+
+# Limites de las columnas en base de datos. Se validan ANTES de guardar porque
+# el guardado en bloque (bulk_create) NO corre la validacion de Django: un valor
+# que cabe en Python pero no en la columna provocaria un error de base (500).
+# Acotar aqui convierte esos casos en un rechazo limpio (INVALID_PAYLOAD).
+_MAX_USER_LEN = 254            # EmailField
+_MAX_PAYMENT_METHOD_LEN = 30   # CharField(max_length=30)
+_MAX_HASH_LEN = 128            # CharField(max_length=128)
+_BIGINT_MIN = -9223372036854775808
+_BIGINT_MAX = 9223372036854775807   # rango de BigIntegerField (idTxn)
+_VALUE_MAX_DIGITS = 18
+_VALUE_DECIMAL_PLACES = 2
+
+
+def _ensure_db_bounds(id_txn: int, user: str, value: Decimal,
+                      payment_method: str, hash_: str) -> None:
+    """Rechaza valores que caben en Python pero NO en la columna de la base,
+    para que un fuzzer no provoque un 500 al insertar (idTxn fuera de rango,
+    textos muy largos, o montos no finitos / con demasiados digitos)."""
+    if not (_BIGINT_MIN <= id_txn <= _BIGINT_MAX):
+        raise ValueError(f"idTxn fuera de rango: {id_txn}")
+    if len(user) > _MAX_USER_LEN:
+        raise ValueError(f"user demasiado largo (max {_MAX_USER_LEN})")
+    if len(payment_method) > _MAX_PAYMENT_METHOD_LEN:
+        raise ValueError(f"paymentMethod demasiado largo (max {_MAX_PAYMENT_METHOD_LEN})")
+    if len(hash_) > _MAX_HASH_LEN:
+        raise ValueError(f"hash demasiado largo (max {_MAX_HASH_LEN})")
+    if not value.is_finite():
+        raise ValueError(f"value no es un numero finito: {value}")
+    if value.as_tuple().exponent < -_VALUE_DECIMAL_PLACES:
+        raise ValueError(f"value con mas de {_VALUE_DECIMAL_PLACES} decimales")
+    if abs(value) >= Decimal(10) ** (_VALUE_MAX_DIGITS - _VALUE_DECIMAL_PLACES):
+        raise ValueError("value excede el tamano permitido")
+
+
+def _parse_date_field(raw) -> datetime:
+    """Valida y convierte el campo 'date'; lanza con detalle preciso si falla."""
+    if not isinstance(raw, str) or not raw.strip():
+        raise ValueError(f"date vacia o no es texto: {raw!r}")
+    try:
+        return _parse_date(raw)
+    except ValueError:
+        raise ValueError(f"date no es una fecha ISO 8601: {raw!r}")
+
+
 def _parse_one(item: Dict) -> Transaction:
-    """Convierte un payload crudo en entidad Transaction (lanza si invalido)."""
+    """Convierte un payload crudo en entidad Transaction.
+
+    Cuando algo no cuadra lanza ValueError con un detalle PRECISO (que campo y
+    por que). Ese detalle se propaga al motivo del rechazo y al log, para saber
+    exactamente que fallo en cada transaccion (no solo 'invalido').
+    """
+    for field_name in _REQUIRED_FIELDS:
+        if field_name not in item:
+            raise ValueError(f"falta el campo '{field_name}'")
+
     # Un booleano JSON (true/false) no es un id ni un monto: Python lo
     # convertiria en silencio a 0/1, asi que se rechaza de forma explicita.
-    if isinstance(item['idTxn'], bool) or isinstance(item['value'], bool):
-        raise ValueError('bool not allowed for idTxn/value')
-    id_txn = int(item['idTxn'])
-    user = str(item['user']).strip()
-    date = _parse_date(str(item['date']))
-    value = Decimal(str(item['value']))
-    payment_method = str(item['paymentMethod']).strip()
-    txn_hash = str(item['hash']).strip()
+    if isinstance(item['idTxn'], bool):
+        raise ValueError('idTxn no puede ser booleano')
+    if isinstance(item['value'], bool):
+        raise ValueError('value no puede ser booleano')
 
-    if not user or not payment_method:
-        raise ValueError('empty user or paymentMethod')
+    try:
+        id_txn = int(item['idTxn'])
+    except (TypeError, ValueError):
+        raise ValueError(f"idTxn no es un entero: {item['idTxn']!r}")
+
+    user = str(item['user']).strip()
+    if not user:
+        raise ValueError('user vacio')
+
+    try:
+        value = Decimal(str(item['value']))
+    except (InvalidOperation, ValueError):
+        raise ValueError(f"value no es un numero: {item['value']!r}")
+
+    payment_method = str(item['paymentMethod']).strip()
+    if not payment_method:
+        raise ValueError('paymentMethod vacio')
+
+    date = _parse_date_field(item['date'])
+    hash_ = str(item['hash']).strip()
+
+    _ensure_db_bounds(id_txn, user, value, payment_method, hash_)
 
     return Transaction(
         id_txn=id_txn, user=user, date=date, value=value,
-        payment_method=payment_method, hash=txn_hash,
+        payment_method=payment_method, hash=hash_,
     )
 
 
@@ -92,8 +165,12 @@ def ingest_transactions(
     for item in payloads:
         try:
             txn = _parse_one(item)
-        except (KeyError, ValueError, TypeError, InvalidOperation):
-            result.rejected.append({'idTxn': item.get('idTxn'), 'reason': 'INVALID_PAYLOAD'})
+        except (ValueError, TypeError) as exc:
+            result.rejected.append({
+                'idTxn': item.get('idTxn'),
+                'reason': 'INVALID_PAYLOAD',
+                'detail': str(exc),
+            })
             continue
 
         # Filtro 2 (solo si se exige firma): la firma HMAC debe coincidir con la
@@ -107,13 +184,26 @@ def ingest_transactions(
                 str(item['value']), txn.payment_method,
             )
             if not ok:
-                result.rejected.append({'idTxn': txn.id_txn, 'reason': 'INVALID_HASH'})
+                result.rejected.append({
+                    'idTxn': txn.id_txn,
+                    'reason': 'INVALID_HASH',
+                    'detail': 'la firma HMAC no coincide con los datos enviados',
+                })
                 continue
 
         # Filtro 3: el idTxn no debe repetirse en este lote ni existir ya en la
         # base (anti-reenvio y anti-colision dentro del mismo request).
-        if txn.id_txn in seen_ids or repo.id_txn_exists(txn.id_txn):
-            result.rejected.append({'idTxn': txn.id_txn, 'reason': 'DUPLICATE'})
+        if txn.id_txn in seen_ids:
+            result.rejected.append({
+                'idTxn': txn.id_txn, 'reason': 'DUPLICATE',
+                'detail': 'idTxn repetido dentro del mismo lote',
+            })
+            continue
+        if repo.id_txn_exists(txn.id_txn):
+            result.rejected.append({
+                'idTxn': txn.id_txn, 'reason': 'DUPLICATE',
+                'detail': 'idTxn ya registrado anteriormente',
+            })
             continue
 
         seen_ids.add(txn.id_txn)
@@ -148,9 +238,9 @@ def ingest_transactions(
                 continue
             repo.save_anomaly(anomaly)
             result.anomalies_detected += 1
-            for txn in history:
-                if anomaly.window_start <= txn.date <= anomaly.window_end:
-                    anomalous_ids.add(txn.id_txn)
+            # La deteccion ya sabe que transacciones forman la rafaga; se toman
+            # directo (antes se re-escaneaba todo el historial por cada anomalia).
+            anomalous_ids.update(anomaly.transaction_ids)
 
     if anomalous_ids:
         repo.mark_transactions_anomalous(list(anomalous_ids))

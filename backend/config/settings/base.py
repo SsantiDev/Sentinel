@@ -1,5 +1,8 @@
 import environ
+from datetime import timedelta
 from pathlib import Path
+
+from .logging_config import build_logging
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 env = environ.Env()
@@ -103,8 +106,6 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
-from datetime import timedelta
-
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=8),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
@@ -127,7 +128,14 @@ REST_FRAMEWORK = {
     # Tamano maximo de un lote de transacciones por request. Evita que un
     # payload gigante agote memoria; si se supera se responde 413.
     'MAX_TRANSACTIONS_PER_REQUEST': 1000,
+    # Manejador de errores que registra los fallos 5xx en el log (ver logger).
+    'EXCEPTION_HANDLER': 'config.exception_handler.logging_exception_handler',
 }
+
+# --- Logging: archivo rotativo + consola (nunca a la base de datos) ---
+LOG_DIR = BASE_DIR / 'logs'
+LOG_DIR.mkdir(exist_ok=True)
+LOGGING = build_logging(LOG_DIR)
 
 # --- Cabeceras / politicas de seguridad (mitigan alertas de ZAP/Burp) ---
 # X-Content-Type-Options: nosniff

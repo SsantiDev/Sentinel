@@ -8,6 +8,7 @@ from interfaces.http.views.user_views import UserViewSet
 from interfaces.http.views.security_views import BlockedIPViewSet
 from interfaces.http.views.public_views import PublicCheckView
 from interfaces.http.views.scheduler_views import SchedulerStatusView
+from interfaces.http.views.log_views import LogTailView
 from interfaces.http.views.transaction_views import (
     TransactionIngestView, TransactionAnomalyViewSet, DetectionConfigView,
     TransactionSimulateView,
@@ -28,6 +29,7 @@ urlpatterns = [
     path('settings/profile/password/', ProfileUpdateView.as_view(), name='profile-password'),
     path('public/check/', PublicCheckView.as_view(), name='public-check'),
     path('scheduler/status/', SchedulerStatusView.as_view(), name='scheduler-status'),
+    path('logs/tail/', LogTailView.as_view(), name='logs-tail'),
     path('transactions/', TransactionIngestView.as_view(), name='transactions-ingest'),
     path('transactions/simulate/', TransactionSimulateView.as_view(), name='transactions-simulate'),
     path('detection-config/', DetectionConfigView.as_view(), name='detection-config'),

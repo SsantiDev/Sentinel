@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 from domain.entities.transaction import DetectionConfig, Transaction
@@ -26,6 +26,9 @@ def test_case1_multiple_transactions_same_user_is_anomaly():
     assert len(anomalies) == 1
     assert anomalies[0].user == 'b@b.com'
     assert anomalies[0].transaction_count == 3
+    # La deteccion expone las transacciones de la rafaga (la ingesta las usa
+    # para marcarlas sin re-escanear el historial).
+    assert anomalies[0].transaction_ids == [1, 2, 3]
 
 
 def test_case2_spread_transactions_are_normal():
@@ -89,6 +92,19 @@ def test_sustained_burst_is_a_single_anomaly():
     anomalies = detect_transaction_anomalies(txns, CONFIG)
     assert len(anomalies) == 1
     assert anomalies[0].transaction_count == 6
+
+
+def test_long_burst_splits_into_multiple_windows():
+    # 10 transacciones cada 0.5s abarcan 4.5s: mas de una ventana de 3s. Antes
+    # colapsaban en 1 sola anomalia; ahora se reparten en ventanas no solapadas,
+    # y la ventana mas concentrada sale con mayor nivel.
+    base = datetime(2026, 9, 23, 21, 0, 0)
+    txns = [_txn(i, 'b@b.com', base + timedelta(seconds=i * 0.5)) for i in range(10)]
+    anomalies = detect_transaction_anomalies(txns, CONFIG)
+    assert len(anomalies) == 2
+    assert anomalies[0].transaction_count == 7
+    assert anomalies[0].level == 'high'
+    assert anomalies[1].transaction_count == 3
 
 
 def test_two_separate_bursts_are_two_anomalies():

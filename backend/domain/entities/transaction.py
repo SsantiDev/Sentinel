@@ -1,7 +1,7 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
+from typing import List, Optional
 
 
 @dataclass
@@ -35,6 +35,10 @@ class TransactionAnomaly:
     status: str = 'open'
     id: Optional[int] = None
     detected_at: Optional[datetime] = None
+    # Ids de las transacciones que forman la rafaga. Lo llena la deteccion para
+    # que la ingesta no tenga que re-escanear el historial buscandolas. No se
+    # persiste: al leer una anomalia de la base vuelve vacio (default).
+    transaction_ids: List[int] = field(default_factory=list)
 
 
 @dataclass
