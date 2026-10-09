@@ -51,9 +51,14 @@ export function AnomalyTable({ anomalies, onUpdateStatus, onSelectAnomaly }) {
               onClick={() => onSelectAnomaly(a)}
               className="border-b border-border-subtle last:border-0 hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer transition-colors"
             >
-              <td className="px-6 py-4 font-bold text-text-primary">{a.user}</td>
+              <td className="px-6 py-4">
+                <div className="font-bold text-text-primary">{a.user}</div>
+                <span className={`mt-1 inline-block px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${a.reason && a.reason !== 'burst' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-gray-500/10 text-text-secondary border-border-subtle'}`}>
+                  {t(`anomalies.reason.${a.reason || 'burst'}`)}
+                </span>
+              </td>
               <td className="px-6 py-4 text-text-secondary">{a.transaction_count}</td>
-              <td className="px-6 py-4 text-text-secondary">{a.window_seconds}s</td>
+              <td className="px-6 py-4 text-text-secondary">{a.reason && a.reason !== 'burst' ? '—' : `${a.window_seconds}s`}</td>
               <td className="px-6 py-4 text-text-secondary">{currency.format(a.total_value || 0)}</td>
               <td className="px-6 py-4">
                 <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${LEVEL_STYLES[a.level] || LEVEL_STYLES.low}`}>

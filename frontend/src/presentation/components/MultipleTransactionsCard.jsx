@@ -8,7 +8,9 @@ const nf = new Intl.NumberFormat('es-CO')
 // y cuantas transacciones estan agrupadas en ellos.
 export function MultipleTransactionsCard({ stats }) {
   const { t } = useTranslation()
-  const cases = stats.total_anomalies || 0
+  // Solo rafagas: esta tarjeta es sobre "multiples transacciones", no incluye
+  // los rechazos (duplicados/invalidos) agrupados.
+  const cases = stats.burst_anomalies || 0
   const grouped = stats.anomalies_transaction_total || 0
 
   return (

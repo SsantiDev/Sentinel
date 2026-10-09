@@ -42,5 +42,12 @@ export function useAnomalyDashboard() {
     return data
   }, [])
 
-  return { stats, trends, anomalies, loading, error, refetch: fetch, updateStatus, fetchTimeline }
+  // Borra TODAS las transacciones y anomalias (solo admin) y recarga el tablero.
+  const resetData = useCallback(async () => {
+    const { data } = await apiClient.post('/transactions/reset/')
+    await fetch()
+    return data
+  }, [fetch])
+
+  return { stats, trends, anomalies, loading, error, refetch: fetch, updateStatus, fetchTimeline, resetData }
 }
