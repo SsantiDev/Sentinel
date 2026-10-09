@@ -32,6 +32,9 @@ class ITransactionRepository(ABC):
     def save_anomaly(self, anomaly: TransactionAnomaly) -> TransactionAnomaly: ...
 
     @abstractmethod
+    def upsert_grouped_anomaly(self, anomaly: TransactionAnomaly) -> TransactionAnomaly: ...
+
+    @abstractmethod
     def get_stats_counts(self) -> Dict: ...
 
     @abstractmethod

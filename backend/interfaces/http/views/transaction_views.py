@@ -20,6 +20,7 @@ from application.use_cases.ingest_transactions import ingest_transactions
 from application.use_cases.simulate_transactions import build_signed_transactions
 from application.use_cases.calculate_transaction_stats import calculate_transaction_stats
 from application.use_cases.calculate_transaction_trends import calculate_transaction_trends
+from application.use_cases.reset_transactions import reset_transactions
 from domain.entities.transaction import DetectionConfig
 
 
@@ -266,3 +267,21 @@ class DetectionConfigView(APIView):
             "night_limit": config.night_limit,
             "require_signature": config.require_signature,
         }
+
+
+class TransactionResetView(APIView):
+    """Borra TODAS las transacciones y anomalias. Solo super administrador.
+
+    Accion destructiva e irreversible: por eso exige admin y va por POST (nunca
+    GET). El front la protege ademas con un modal de confirmacion. Sirve para
+    dejar el tablero en blanco antes de una nueva prueba/sustentacion.
+    """
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
+
+    def post(self, request):
+        result = reset_transactions(DjangoTransactionRepository())
+        logger.warning(
+            'reset manual de transacciones por ip=%s: %s',
+            _client_ip(request), result,
+        )
+        return Response(result)

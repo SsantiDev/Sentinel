@@ -11,12 +11,12 @@ class TransactionAnomalySerializer(serializers.ModelSerializer):
         fields = [
             'id', 'user', 'transaction_count', 'window_seconds', 'threshold',
             'time_band', 'level', 'total_value', 'window_start', 'window_end',
-            'status', 'detected_at',
+            'status', 'reason', 'detected_at',
         ]
         read_only_fields = [
             'id', 'user', 'transaction_count', 'window_seconds', 'threshold',
             'time_band', 'level', 'total_value', 'window_start', 'window_end',
-            'detected_at',
+            'reason', 'detected_at',
         ]
 
 

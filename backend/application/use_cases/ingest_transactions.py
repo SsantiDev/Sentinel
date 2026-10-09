@@ -10,6 +10,9 @@ from domain.entities.transaction import Transaction
 from domain.interfaces.transaction_repository import ITransactionRepository
 from application.use_cases.transaction_hash import is_valid_hash
 from application.use_cases.detect_transaction_anomalies import detect_transaction_anomalies
+from application.use_cases.flag_invalid_transactions import (
+    find_invalid_anomalies, build_rejection_anomaly,
+)
 
 
 @dataclass
@@ -159,6 +162,9 @@ def ingest_transactions(
     # idTxn ya vistos EN ESTE lote: evita que dos filas con el mismo id lleguen
     # juntas al guardado en bloque y rompan la clave unica (error de servidor).
     seen_ids: set = set()
+    # Payloads rechazados (crudo + motivo): cada uno se registrara como anomalia
+    # visible para que NINGUN dato entre en silencio al tablero.
+    rejected_items: List[tuple] = []
 
     # Se valida cada transaccion en 3 filtros en orden: formato -> firma ->
     # duplicado. La que falla un filtro se descarta con su motivo y se sigue.
@@ -166,11 +172,14 @@ def ingest_transactions(
         try:
             txn = _parse_one(item)
         except (ValueError, TypeError) as exc:
+            # item.get puede fallar si el payload ni siquiera es un diccionario.
+            id_val = item.get('idTxn') if isinstance(item, dict) else None
             result.rejected.append({
-                'idTxn': item.get('idTxn'),
+                'idTxn': id_val,
                 'reason': 'INVALID_PAYLOAD',
                 'detail': str(exc),
             })
+            rejected_items.append((item, 'INVALID_PAYLOAD'))
             continue
 
         # Filtro 2 (solo si se exige firma): la firma HMAC debe coincidir con la
@@ -189,6 +198,7 @@ def ingest_transactions(
                     'reason': 'INVALID_HASH',
                     'detail': 'la firma HMAC no coincide con los datos enviados',
                 })
+                rejected_items.append((item, 'INVALID_HASH'))
                 continue
 
         # Filtro 3: el idTxn no debe repetirse en este lote ni existir ya en la
@@ -198,16 +208,26 @@ def ingest_transactions(
                 'idTxn': txn.id_txn, 'reason': 'DUPLICATE',
                 'detail': 'idTxn repetido dentro del mismo lote',
             })
+            rejected_items.append((item, 'DUPLICATE'))
             continue
         if repo.id_txn_exists(txn.id_txn):
             result.rejected.append({
                 'idTxn': txn.id_txn, 'reason': 'DUPLICATE',
                 'detail': 'idTxn ya registrado anteriormente',
             })
+            rejected_items.append((item, 'DUPLICATE'))
             continue
 
         seen_ids.add(txn.id_txn)
         valid.append(txn)
+
+    # Cada payload rechazado (formato invalido, firma que no coincide o ID ya
+    # registrado -> posible reenvio/replay) queda como anomalia visible. Se
+    # AGRUPA por usuario+motivo (una fila con contador) para no inundar la base:
+    # un ID reenviado 196 veces es UNA fila con cuenta 196, no 196 filas.
+    for raw_item, rejection_reason in rejected_items:
+        repo.upsert_grouped_anomaly(build_rejection_anomaly(raw_item, rejection_reason))
+        result.anomalies_detected += 1
 
     if not valid:
         return result
@@ -244,5 +264,16 @@ def ingest_transactions(
 
     if anomalous_ids:
         repo.mark_transactions_anomalous(list(anomalous_ids))
+
+    # Ademas de las rafagas, cada transaccion con datos invalidos (monto <= 0,
+    # usuario que no es un correo, o fecha futura) se marca como anomalia por si
+    # sola, para que un dato invalido no entre en silencio al tablero.
+    invalid_ids: List[int] = []
+    for anomaly in find_invalid_anomalies(result.accepted):
+        repo.upsert_grouped_anomaly(anomaly)
+        result.anomalies_detected += 1
+        invalid_ids.extend(anomaly.transaction_ids)
+    if invalid_ids:
+        repo.mark_transactions_anomalous(invalid_ids)
 
     return result

@@ -198,6 +198,10 @@ class TransactionAnomalyModel(models.Model):
     window_start = models.DateTimeField()
     window_end = models.DateTimeField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
+    # Motivo de la anomalia: 'burst' (rafaga de transacciones en una ventana) o
+    # 'invalid_data' (una transaccion con datos invalidos). Distingue los dos
+    # tipos en el tablero. Las anomalias existentes quedan como 'burst'.
+    reason = models.CharField(max_length=30, default='burst')
     detected_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

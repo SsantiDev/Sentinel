@@ -11,7 +11,7 @@ from interfaces.http.views.scheduler_views import SchedulerStatusView
 from interfaces.http.views.log_views import LogTailView
 from interfaces.http.views.transaction_views import (
     TransactionIngestView, TransactionAnomalyViewSet, DetectionConfigView,
-    TransactionSimulateView,
+    TransactionSimulateView, TransactionResetView,
 )
 
 router = DefaultRouter()
@@ -32,5 +32,6 @@ urlpatterns = [
     path('logs/tail/', LogTailView.as_view(), name='logs-tail'),
     path('transactions/', TransactionIngestView.as_view(), name='transactions-ingest'),
     path('transactions/simulate/', TransactionSimulateView.as_view(), name='transactions-simulate'),
+    path('transactions/reset/', TransactionResetView.as_view(), name='transactions-reset'),
     path('detection-config/', DetectionConfigView.as_view(), name='detection-config'),
 ]

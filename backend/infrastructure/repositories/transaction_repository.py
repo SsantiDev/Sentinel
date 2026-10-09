@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional, Tuple
 
 from django.conf import settings
+from django.db.models import F
 
 from domain.entities.transaction import (
     DetectionConfig, Transaction, TransactionAnomaly,
@@ -109,8 +110,33 @@ class DjangoTransactionRepository(ITransactionRepository):
             total_value=anomaly.total_value,
             window_start=anomaly.window_start,
             window_end=anomaly.window_end,
+            reason=anomaly.reason,
         )
         return self._to_anomaly_entity(m)
+
+    def upsert_grouped_anomaly(self, anomaly: TransactionAnomaly) -> TransactionAnomaly:
+        """Agrupa anomalias repetidas del mismo usuario y motivo en UNA fila con
+        contador, para no inundar la base de datos basura.
+
+        Si ya existe una anomalia de ese (usuario, motivo), suma el intento a su
+        contador (transaction_count), acumula el valor y corre la marca de tiempo
+        final (window_end = ultimo visto). Si no existe, la crea. Pensado para
+        'duplicate_id', 'invalid_data' e 'invalid_signature'; las rafagas ('burst')
+        siguen guardandose una por una con save_anomaly.
+        """
+        existing = TransactionAnomalyModel.objects.filter(
+            user=anomaly.user, reason=anomaly.reason,
+        ).order_by('id').first()
+        if existing is None:
+            return self.save_anomaly(anomaly)
+
+        TransactionAnomalyModel.objects.filter(pk=existing.pk).update(
+            transaction_count=F('transaction_count') + anomaly.transaction_count,
+            total_value=F('total_value') + anomaly.total_value,
+            window_end=anomaly.window_end,
+        )
+        existing.refresh_from_db()
+        return self._to_anomaly_entity(existing)
 
     def reset_all(self) -> Tuple[int, int]:
         """Borra TODAS las transacciones y anomalias; devuelve (transacciones, anomalias).
@@ -201,5 +227,6 @@ class DjangoTransactionRepository(ITransactionRepository):
             window_start=m.window_start,
             window_end=m.window_end,
             status=m.status,
+            reason=m.reason,
             detected_at=m.detected_at,
         )

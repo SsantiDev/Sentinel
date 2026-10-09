@@ -54,15 +54,21 @@ class TransactionMetricsQueries:
         # rafaga de N transacciones (transaction_count). Sumarlas responde
         # "cuantas transacciones estan involucradas en casos de multiples
         # transacciones". Sum devuelve None si no hay anomalias -> 0.
+        # Solo las rafagas ('burst') cuentan como "multiples transacciones": un
+        # rechazo agrupado tiene un contador de intentos que NO debe sumarse aqui.
+        burst_anomalies = anomalies.filter(reason='burst')
         anomalies_transaction_total = (
-            anomalies.aggregate(s=Sum('transaction_count'))['s'] or 0
+            burst_anomalies.aggregate(s=Sum('transaction_count'))['s'] or 0
         )
 
         return {
-            # Volumen de transacciones por ventana de tiempo.
-            'transactions_today': txns.filter(date__gte=today_start).count(),
-            'transactions_this_week': txns.filter(date__gte=week_start).count(),
-            'transactions_this_month': txns.filter(date__gte=month_start).count(),
+            # Volumen de transacciones por ventana de tiempo. Se usa 'created_at'
+            # (hora en que el sistema recibio la transaccion), NO 'date' (fecha que
+            # viene en el payload y el cliente puede falsear). Asi "hoy/semana/mes"
+            # significa lo mismo que en las anomalias, que se miden por 'detected_at'.
+            'transactions_today': txns.filter(created_at__gte=today_start).count(),
+            'transactions_this_week': txns.filter(created_at__gte=week_start).count(),
+            'transactions_this_month': txns.filter(created_at__gte=month_start).count(),
             # Anomalias detectadas por ventana de tiempo.
             'anomalies_today': anomalies.filter(detected_at__gte=today_start).count(),
             'anomalies_this_week': anomalies.filter(detected_at__gte=week_start).count(),
@@ -70,6 +76,7 @@ class TransactionMetricsQueries:
             # Totales historicos.
             'total_transactions': txns.count(),
             'total_anomalies': anomalies.count(),
+            'burst_anomalies': burst_anomalies.count(),   # solo rafagas
             'distinct_users': txns.values('user').distinct().count(),       # usuarios unicos
             'affected_users_count': anomalies.values('user').distinct().count(),  # con anomalia
             'suspicious_total_value': float(suspicious_value),

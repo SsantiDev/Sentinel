@@ -36,6 +36,9 @@ def calculate_transaction_stats(counts: Dict) -> Dict:
         'affected_users_count': counts['affected_users_count'],
         'avg_transactions_per_user': avg_transactions_per_user,
         'suspicious_total_value': counts['suspicious_total_value'],
+        # Solo rafagas: casos y transacciones involucradas en "multiples
+        # transacciones" (no cuentan los rechazos agrupados ni los invalidos).
+        'burst_anomalies': counts['burst_anomalies'],
         'anomalies_transaction_total': counts['anomalies_transaction_total'],
         'anomalies_new': counts['anomalies_open'],
         'anomalies_open': counts['anomalies_open'],

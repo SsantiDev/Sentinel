@@ -5,7 +5,7 @@ def _counts(**overrides):
     base = {
         'transactions_today': 10, 'transactions_this_week': 50, 'transactions_this_month': 127,
         'anomalies_today': 2, 'anomalies_this_week': 5, 'anomalies_this_month': 9,
-        'total_transactions': 200, 'total_anomalies': 10,
+        'total_transactions': 200, 'total_anomalies': 10, 'burst_anomalies': 8,
         'distinct_users': 20, 'affected_users_count': 4,
         'suspicious_total_value': 1500000.0,
         'anomalies_transaction_total': 37,
@@ -38,4 +38,5 @@ def test_passthrough_fields_present():
     assert stats['payment_method_distribution'][0]['method'] == 'Tarjeta'
     assert stats['anomalies_new'] == 6
     assert stats['anomalies_transaction_total'] == 37
+    assert stats['burst_anomalies'] == 8
     assert stats['top_recurrent_cases'][0]['level'] == 'high'

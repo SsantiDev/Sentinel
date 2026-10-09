@@ -33,6 +33,9 @@ class TransactionAnomaly:
     window_start: datetime
     window_end: datetime
     status: str = 'open'
+    # 'burst' = rafaga por ventana; 'invalid_data' = transaccion con datos
+    # invalidos marcada por si sola.
+    reason: str = 'burst'
     id: Optional[int] = None
     detected_at: Optional[datetime] = None
     # Ids de las transacciones que forman la rafaga. Lo llena la deteccion para
